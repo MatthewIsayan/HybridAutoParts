@@ -32,7 +32,7 @@ public class BootstrapService {
     }
 
     public BootstrapResponseDto getBootstrapData() {
-        CompanyConfig company = companyConfigRepository.findById(1L)
+        CompanyConfig company = companyConfigRepository.findFirstByOrderByIdAsc()
                 .orElseThrow(() -> new EntityNotFoundException("Seeded company configuration was not found."));
 
         return new BootstrapResponseDto(

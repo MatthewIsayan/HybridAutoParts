@@ -242,6 +242,10 @@ flowchart TD
 
 ## Phase 0: Foundation
 
+### Status
+
+Complete.
+
 ### Objective
 
 Establish the monorepo, baseline architecture, local developer workflow, shared API contract generation path, seed strategy, and core domain skeletons without attempting full end-user functionality.
@@ -311,6 +315,10 @@ This phase creates the delivery foundation. It does not yet provide a complete c
 - Production-grade search relevance.
 
 ## Phase 1: Public Inventory Browsing
+
+### Status
+
+Complete.
 
 ### Objective
 

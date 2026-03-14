@@ -5,6 +5,7 @@ import { AboutPage } from '@/pages/about-page'
 import { ContactPage } from '@/pages/contact-page'
 import { HomePage } from '@/pages/home-page'
 import { InventoryPage } from '@/pages/inventory-page'
+import { PartDetailPage } from '@/pages/part-detail-page'
 import { AdminDashboardPage } from '@/pages/admin/admin-dashboard-page'
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
       <Route element={<PublicShell />}>
         <Route index element={<HomePage />} />
         <Route path="/inventory" element={<InventoryPage />} />
+        <Route path="/inventory/:partId" element={<PartDetailPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
       </Route>

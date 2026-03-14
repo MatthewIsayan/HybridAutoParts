@@ -1,9 +1,11 @@
 package com.hybridautoparts.backend;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -24,7 +26,10 @@ class PublicBootstrapControllerIT {
         mockMvc.perform(get("/api/public/bootstrap"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.company.companyName").value("Hybrid Auto Parts"))
-                .andExpect(jsonPath("$.featuredParts.length()").value(3))
-                .andExpect(jsonPath("$.featuredParts[0].images[0].placeholder").value(true));
+                .andExpect(jsonPath("$.company.phone").value("818-767-5656 / 818-293-9630"))
+                .andExpect(jsonPath("$.company.city").value("Sun Valley"))
+                .andExpect(jsonPath("$.featuredParts.length()").value(6))
+                .andExpect(jsonPath("$.featuredParts[0].images[0].placeholder").value(false))
+                .andExpect(content().string(Matchers.containsString("EBAY-")));
     }
 }
