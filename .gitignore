@@ -1,0 +1,10 @@
+.DS_Store
+.idea/
+.vscode/
+node_modules/
+frontend/node_modules/
+backend/.gradle/
+backend/build/
+*.log
+.env
+backend.zip

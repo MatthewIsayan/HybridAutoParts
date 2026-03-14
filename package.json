@@ -1,0 +1,10 @@
+{
+  "name": "hybrid-auto-parts",
+  "private": true,
+  "scripts": {
+    "generate:api-types": "openapi-typescript http://localhost:8080/v3/api-docs -o shared/api-types/generated.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.10.1"
+  }
+}
