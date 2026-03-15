@@ -1,0 +1,86 @@
+name: Deploy Demo
+
+on:
+  push:
+    tags:
+      - 'demo-v*'
+  workflow_dispatch:
+
+concurrency:
+  group: demo-deploy
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+        working-directory: backend
+
+      - name: Run backend tests
+        run: ./gradlew test
+        working-directory: backend
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Verify committed Hybrid seed images
+        run: python scripts/hydrate_ebay_seed_images.py --verify-only
+
+      - name: Run frontend tests
+        run: npm run test
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+
+  deploy-backend:
+    runs-on: ubuntu-latest
+    needs: verify
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_BACKEND_SERVICE_ID: ${{ secrets.RAILWAY_BACKEND_SERVICE_ID }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Deploy backend to Railway
+        run: railway up --service="$RAILWAY_BACKEND_SERVICE_ID" --ci
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    needs: verify
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_FRONTEND_SERVICE_ID: ${{ secrets.RAILWAY_FRONTEND_SERVICE_ID }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Deploy frontend to Railway
+        run: railway up --service="$RAILWAY_FRONTEND_SERVICE_ID" --ci

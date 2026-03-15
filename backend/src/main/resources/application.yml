@@ -22,6 +22,9 @@ spring:
       max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:10MB}
       max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:50MB}
 
+server:
+  forward-headers-strategy: framework
+
 management:
   endpoints:
     web:
@@ -37,6 +40,12 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+info:
+  app:
+    name: Hybrid Auto Parts
+    environment: ${APP_ENVIRONMENT:local}
+    version: ${APP_RELEASE_VERSION:dev}
 
 app:
   cors:

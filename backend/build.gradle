@@ -8,6 +8,10 @@ group = 'com.hybridautoparts'
 version = '0.0.1-SNAPSHOT'
 description = 'Hybrid Auto Parts backend foundation'
 
+springBoot {
+	buildInfo()
+}
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)

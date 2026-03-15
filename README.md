@@ -2,6 +2,8 @@
 
 Hybrid Auto Parts is a phased MVP for public salvage inventory browsing plus protected admin inventory, media, and company-content management.
 
+The repo is now set up for a shared `demo` deployment flow with seeded Flyway data, Docker-based service builds, and optional GitHub Actions driven Railway deploys.
+
 ## Current Stack
 
 - `backend/`: Spring Boot API with Flyway, PostgreSQL, Spring Security JWT auth, MapStruct, and OpenAPI
@@ -42,4 +44,5 @@ That command refreshes `shared/api-types/generated.ts` from the backend OpenAPI 
 - [docs/environment-variables.md](docs/environment-variables.md)
 - [docs/generated-api-types.md](docs/generated-api-types.md)
 - [docs/docker-onboarding.md](docs/docker-onboarding.md)
+- [docs/demo-deployment.md](docs/demo-deployment.md)
 - [docs/release-smoke-checklist.md](docs/release-smoke-checklist.md)

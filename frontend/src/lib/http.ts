@@ -1,4 +1,5 @@
 import { ADMIN_SESSION_EXPIRED_EVENT } from '@/lib/auth'
+import { resolveApiUrl } from '@/lib/app-config'
 
 export class ApiClientError extends Error {
   status: number
@@ -26,7 +27,7 @@ export async function requestJson<T>(path: string, options: RequestJsonOptions =
     headers.set('Authorization', `Bearer ${options.token}`)
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(resolveApiUrl(path), {
     method: options.method ?? 'GET',
     headers,
     body: requestBody,
@@ -50,7 +51,7 @@ export async function requestVoid(path: string, options: RequestJsonOptions = {}
     headers.set('Authorization', `Bearer ${options.token}`)
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(resolveApiUrl(path), {
     method: options.method ?? 'DELETE',
     headers,
     body: requestBody,

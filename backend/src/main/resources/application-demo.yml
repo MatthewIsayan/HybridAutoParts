@@ -1,0 +1,19 @@
+spring:
+  config:
+    activate:
+      on-profile: demo
+
+info:
+  app:
+    environment: demo
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}
+  security:
+    jwt:
+      secret: ${APP_SECURITY_JWT_SECRET}
+      expiration: ${APP_SECURITY_JWT_EXPIRATION:PT12H}
+  media:
+    uploads-path: ${APP_MEDIA_UPLOADS_PATH:/app/uploads}
+    url-prefix: ${APP_MEDIA_URL_PREFIX:/uploads}

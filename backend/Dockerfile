@@ -1,7 +1,7 @@
 FROM gradle:8.14.3-jdk21 AS build
 WORKDIR /app
 
-COPY . .
+COPY backend/ ./
 RUN gradle bootJar --no-daemon
 
 FROM eclipse-temurin:21-jre

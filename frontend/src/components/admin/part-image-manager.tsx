@@ -3,6 +3,7 @@ import type { ChangeEvent } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { resolveMediaUrl } from '@/lib/app-config'
 import { adminQueryKeys, deleteAdminPartImage, fetchAdminPartImages, reorderAdminPartImages, uploadAdminPartImages } from '@/lib/admin-api'
 import { useAdminAuth } from '@/lib/auth'
 import { ApiClientError } from '@/lib/http'
@@ -141,8 +142,12 @@ export function PartImageManager({ partId }: PartImageManagerProps) {
           {images.map((image, index) => (
             <article key={image.id} className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
               <div className="aspect-[4/3] bg-slate-900">
-                {image.url ? (
-                  <img src={image.url} alt={image.altText ?? `Part image ${index + 1}`} className="h-full w-full object-cover" />
+                {resolveMediaUrl(image.url) ? (
+                  <img
+                    src={resolveMediaUrl(image.url)}
+                    alt={image.altText ?? `Part image ${index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   <div className="flex h-full items-center justify-center px-4 text-center text-sm text-slate-500">Missing image URL</div>
                 )}

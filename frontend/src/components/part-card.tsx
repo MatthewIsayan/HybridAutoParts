@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { resolveMediaUrl } from '@/lib/app-config'
 import type { Part } from '@/types/api'
 
 function formatVehicleLabel(part: Part) {
@@ -21,6 +22,7 @@ interface PartCardProps {
 export function PartCard({ part }: PartCardProps) {
   const [imageFailed, setImageFailed] = useState(false)
   const primaryImage = part.images?.[0]
+  const primaryImageUrl = resolveMediaUrl(primaryImage?.url)
   const vehicleLabel = useMemo(() => formatVehicleLabel(part), [part])
   const imageLabel = primaryImage?.altText ?? `${part.title} placeholder`
   const galleryCount = part.images?.length ?? 0
@@ -28,9 +30,9 @@ export function PartCard({ part }: PartCardProps) {
   return (
     <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-transform hover:-translate-y-0.5">
       <div className="relative aspect-[4/3] border-b border-border bg-muted">
-        {primaryImage?.url && !imageFailed ? (
+        {primaryImageUrl && !imageFailed ? (
           <img
-            src={primaryImage.url}
+            src={primaryImageUrl}
             alt={imageLabel}
             className="h-full w-full object-cover"
             loading="lazy"

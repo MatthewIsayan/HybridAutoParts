@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { resolveMediaUrl } from '@/lib/app-config'
 import { fetchCompanyConfig, fetchPart, publicQueryKeys } from '@/lib/public-api'
 
 function formatPrice(price: number) {
@@ -30,6 +31,7 @@ export function PartDetailPage() {
   const company = companyQuery.data
   const images = part?.images ?? []
   const primaryImage = images[selectedImageIndex] ?? images[0]
+  const primaryImageUrl = resolveMediaUrl(primaryImage?.url)
 
   if (partQuery.isLoading) {
     return (
@@ -68,15 +70,15 @@ export function PartDetailPage() {
       <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
           <div className="aspect-[4/3] bg-muted">
-            {primaryImage?.url && !failedImageUrls[primaryImage.url] ? (
+            {primaryImageUrl && !failedImageUrls[primaryImageUrl] ? (
               <img
-                src={primaryImage.url}
+                src={primaryImageUrl}
                 alt={primaryImage.altText ?? part?.title ?? 'Part image'}
                 className="h-full w-full object-cover"
                 onError={() => {
                   setFailedImageUrls((currentValue) => ({
                     ...currentValue,
-                    [primaryImage.url ?? '']: true,
+                    [primaryImageUrl]: true,
                   }))
                 }}
               />
@@ -95,8 +97,12 @@ export function PartDetailPage() {
                   onClick={() => setSelectedImageIndex(index)}
                   className={`overflow-hidden rounded-2xl border ${index === selectedImageIndex ? 'border-primary' : 'border-border'} bg-muted transition hover:opacity-90`}
                 >
-                  {image.url && !failedImageUrls[image.url] ? (
-                    <img src={image.url} alt={image.altText ?? `Part image ${index + 1}`} className="aspect-square h-full w-full object-cover" />
+                  {resolveMediaUrl(image.url) && !failedImageUrls[resolveMediaUrl(image.url)] ? (
+                    <img
+                      src={resolveMediaUrl(image.url)}
+                      alt={image.altText ?? `Part image ${index + 1}`}
+                      className="aspect-square h-full w-full object-cover"
+                    />
                   ) : (
                     <div className="flex aspect-square items-center justify-center px-2 text-center text-xs text-muted-foreground">
                       {index + 1}
