@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { PartImageManager } from '@/components/admin/part-image-manager'
 import { AdminPartForm } from '@/components/admin/part-form'
 import { Button } from '@/components/ui/button'
 import { adminQueryKeys, createAdminPart, fetchAdminPart, updateAdminPart } from '@/lib/admin-api'
@@ -123,15 +124,18 @@ export function AdminPartEditorPage({ mode }: AdminPartEditorPageProps) {
       ) : null}
 
       {mode === 'create' || partQuery.data ? (
-        <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
-          <AdminPartForm
-            value={formValue}
-            fieldErrors={fieldErrors}
-            isSubmitting={saveMutation.isPending}
-            submitLabel={mode === 'edit' ? 'Save changes' : 'Create part'}
-            onChange={setFormValue}
-            onSubmit={handleSubmit}
-          />
+        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
+            <AdminPartForm
+              value={formValue}
+              fieldErrors={fieldErrors}
+              isSubmitting={saveMutation.isPending}
+              submitLabel={mode === 'edit' ? 'Save changes' : 'Create part'}
+              onChange={setFormValue}
+              onSubmit={handleSubmit}
+            />
+          </div>
+          <PartImageManager partId={mode === 'edit' ? partId : undefined} />
         </div>
       ) : null}
     </section>

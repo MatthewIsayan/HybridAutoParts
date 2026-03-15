@@ -6,8 +6,11 @@ import com.hybridautoparts.backend.dto.PartDto;
 import com.hybridautoparts.backend.dto.PartPageDto;
 import com.hybridautoparts.backend.model.Part;
 import com.hybridautoparts.backend.repository.PartRepository;
+import com.hybridautoparts.backend.repository.PartSearchRepository;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,20 +25,27 @@ import org.springframework.web.server.ResponseStatusException;
 public class AdminInventoryService {
 
     private final PartRepository partRepository;
+    private final PartSearchRepository partSearchRepository;
     private final PartMapper partMapper;
 
-    public AdminInventoryService(PartRepository partRepository, PartMapper partMapper) {
+    public AdminInventoryService(
+            PartRepository partRepository,
+            PartSearchRepository partSearchRepository,
+            PartMapper partMapper
+    ) {
         this.partRepository = partRepository;
+        this.partSearchRepository = partSearchRepository;
         this.partMapper = partMapper;
     }
 
     @Transactional(readOnly = true)
     public PartPageDto getInventoryPage(int page, int size, String search, String status) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
-        Page<Part> results = partRepository.findAll(buildInventorySpecification(search, status), pageable);
-        List<PartDto> content = results.getContent().stream()
-                .map(partMapper::toDto)
-                .toList();
+        String normalizedSearch = normalizeOptional(search);
+        Page<Long> results = normalizedSearch == null
+                ? partRepository.findAll(matchesStatus(status), pageable).map(Part::getId)
+                : partSearchRepository.searchAdminPartIds(normalizedSearch, normalizeOptional(status), pageable);
+        List<PartDto> content = mapPartsInPageOrder(results.getContent());
 
         return new PartPageDto(
                 content,
@@ -120,26 +130,17 @@ public class AdminInventoryService {
         }
     }
 
-    private Specification<Part> buildInventorySpecification(String search, String status) {
-        return matchesSearch(search).and(matchesStatus(status));
-    }
-
-    private Specification<Part> matchesSearch(String rawSearch) {
-        String normalizedSearch = normalizeOptional(rawSearch);
-        if (normalizedSearch == null) {
-            return (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
+    private List<PartDto> mapPartsInPageOrder(List<Long> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
         }
 
-        String likeValue = "%" + normalizedSearch.toLowerCase(Locale.ROOT) + "%";
-        return (root, query, criteriaBuilder) -> criteriaBuilder.or(
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("sku")), likeValue),
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), likeValue),
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), likeValue),
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("manufacturer")), likeValue),
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("vehicleMake")), likeValue),
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("vehicleModel")), likeValue),
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("vehicleYear")), likeValue)
-        );
+        Map<Long, PartDto> byId = new HashMap<>();
+        for (Part part : partRepository.findByIdIn(ids)) {
+            byId.put(part.getId(), partMapper.toDto(part));
+        }
+
+        return ids.stream().map(byId::get).toList();
     }
 
     private Specification<Part> matchesStatus(String rawStatus) {

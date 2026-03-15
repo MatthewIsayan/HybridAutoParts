@@ -13,7 +13,8 @@ function formatPrice(price: number) {
 }
 
 export function PartDetailPage() {
-  const [imageFailed, setImageFailed] = useState(false)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [failedImageUrls, setFailedImageUrls] = useState<Record<string, true>>({})
   const { partId = '' } = useParams()
   const partQuery = useQuery({
     queryKey: publicQueryKeys.part(partId),
@@ -27,7 +28,8 @@ export function PartDetailPage() {
 
   const part = partQuery.data
   const company = companyQuery.data
-  const primaryImage = part?.images?.[0]
+  const images = part?.images ?? []
+  const primaryImage = images[selectedImageIndex] ?? images[0]
 
   if (partQuery.isError) {
     return (
@@ -57,12 +59,17 @@ export function PartDetailPage() {
       <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
           <div className="aspect-[4/3] bg-muted">
-            {primaryImage?.url && !imageFailed ? (
+            {primaryImage?.url && !failedImageUrls[primaryImage.url] ? (
               <img
                 src={primaryImage.url}
                 alt={primaryImage.altText ?? part?.title ?? 'Part image'}
                 className="h-full w-full object-cover"
-                onError={() => setImageFailed(true)}
+                onError={() => {
+                  setFailedImageUrls((currentValue) => ({
+                    ...currentValue,
+                    [primaryImage.url ?? '']: true,
+                  }))
+                }}
               />
             ) : (
               <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
@@ -70,6 +77,26 @@ export function PartDetailPage() {
               </div>
             )}
           </div>
+          {images.length > 1 ? (
+            <div className="grid grid-cols-4 gap-3 border-t border-border p-4 sm:grid-cols-5">
+              {images.map((image, index) => (
+                <button
+                  key={image.id ?? `${image.url}-${index}`}
+                  type="button"
+                  onClick={() => setSelectedImageIndex(index)}
+                  className={`overflow-hidden rounded-2xl border ${index === selectedImageIndex ? 'border-primary' : 'border-border'} bg-muted transition hover:opacity-90`}
+                >
+                  {image.url && !failedImageUrls[image.url] ? (
+                    <img src={image.url} alt={image.altText ?? `Part image ${index + 1}`} className="aspect-square h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex aspect-square items-center justify-center px-2 text-center text-xs text-muted-foreground">
+                      {index + 1}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="space-y-6 rounded-3xl border border-border bg-card p-6 shadow-sm">

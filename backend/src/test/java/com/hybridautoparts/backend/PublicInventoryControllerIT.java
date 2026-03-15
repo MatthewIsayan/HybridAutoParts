@@ -67,6 +67,16 @@ class PublicInventoryControllerIT {
     }
 
     @Test
+    void handlesMultiTermQueriesWithRankedSearch() throws Exception {
+        mockMvc.perform(get("/api/public/parts")
+                        .param("search", "2019 camry camera"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()", Matchers.greaterThan(0)))
+                .andExpect(jsonPath("$.content[0].title", Matchers.containsStringIgnoringCase("Camera")))
+                .andExpect(jsonPath("$.content[0].vehicleModel", Matchers.containsStringIgnoringCase("Camry")));
+    }
+
+    @Test
     void returnsPublicPartDetail() throws Exception {
         Part seededPart = partRepository.findAll(PageRequest.of(0, 1)).getContent().getFirst();
 

@@ -24,6 +24,10 @@ export function HomePage() {
     navigate(trimmed ? `/inventory?search=${encodeURIComponent(trimmed)}` : '/inventory')
   }
 
+  function runExampleSearch(value: string) {
+    navigate(`/inventory?search=${encodeURIComponent(value)}`)
+  }
+
   return (
     <div className="space-y-12">
       <section className="grid gap-8 rounded-3xl border border-border bg-card p-8 shadow-sm md:grid-cols-[1.5fr_1fr] md:p-12">
@@ -60,6 +64,18 @@ export function HomePage() {
             <Button asChild variant="outline">
               <Link to="/contact">Contact the yard</Link>
             </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {['2019 camry camera', 'model 3 mirror', 'tesla heater core'].map((searchExample) => (
+              <button
+                key={searchExample}
+                type="button"
+                onClick={() => runExampleSearch(searchExample)}
+                className="rounded-full border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+              >
+                {searchExample}
+              </button>
+            ))}
           </div>
         </div>
         <div className="rounded-2xl border border-border bg-background p-6">

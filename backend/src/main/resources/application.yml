@@ -17,6 +17,10 @@ spring:
   jackson:
     serialization:
       write-dates-as-timestamps: false
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:50MB}
 
 management:
   endpoints:
@@ -41,3 +45,6 @@ app:
     jwt:
       secret: ${APP_SECURITY_JWT_SECRET:hybrid-auto-parts-phase-2-local-jwt-secret-2026}
       expiration: ${APP_SECURITY_JWT_EXPIRATION:PT8H}
+  media:
+    uploads-path: ${APP_MEDIA_UPLOADS_PATH:uploads}
+    url-prefix: ${APP_MEDIA_URL_PREFIX:/uploads}

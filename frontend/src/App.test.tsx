@@ -68,6 +68,26 @@ const camryTransmission = {
   ],
 }
 
+const galleryPart = {
+  ...hondaEngine,
+  images: [
+    {
+      id: 11,
+      url: '/uploads/part-images/1/front-view.png',
+      altText: 'Front view',
+      sortOrder: 1,
+      placeholder: false,
+    },
+    {
+      id: 12,
+      url: '/uploads/part-images/1/side-view.png',
+      altText: 'Side view',
+      sortOrder: 2,
+      placeholder: false,
+    },
+  ],
+}
+
 const adminSession = {
   tokenType: 'Bearer',
   accessToken: 'phase-2-test-token',
@@ -131,10 +151,11 @@ function createQueryClient() {
 describe('Phase 2 admin and public flows', () => {
   beforeEach(() => {
     window.localStorage.clear()
+    let currentAdminImages = [...galleryPart.images]
 
     vi.stubGlobal(
       'fetch',
-      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input)
         const method = init?.method ?? 'GET'
 
@@ -145,13 +166,20 @@ describe('Phase 2 admin and public flows', () => {
         if (url.includes('/api/public/bootstrap')) {
           return jsonResponse({
             company,
-            featuredParts: [hondaEngine, camryTransmission],
+            featuredParts: [galleryPart, camryTransmission],
+          })
+        }
+
+        if (url.includes('/api/public/parts/1')) {
+          return jsonResponse({
+            ...galleryPart,
+            images: currentAdminImages,
           })
         }
 
         if (url.includes('/api/public/parts?page=0&size=12')) {
           return jsonResponse({
-            content: [hondaEngine, camryTransmission],
+            content: [{ ...galleryPart, images: currentAdminImages }, camryTransmission],
             page: 0,
             size: 12,
             totalElements: 2,
@@ -168,7 +196,7 @@ describe('Phase 2 admin and public flows', () => {
 
         if (url.includes('/api/admin/parts?page=0&size=20') && method === 'GET') {
           return jsonResponse({
-            content: [hondaEngine],
+            content: [{ ...galleryPart, images: currentAdminImages }],
             page: 0,
             size: 20,
             totalElements: 1,
@@ -177,18 +205,6 @@ describe('Phase 2 admin and public flows', () => {
             last: true,
             empty: false,
           })
-        }
-
-        if (url.includes('/api/admin/parts') && method === 'POST') {
-          return jsonResponse(
-            {
-              ...hondaEngine,
-              id: 99,
-              sku: 'NEW-PART-001',
-              title: 'Created Test Part',
-            },
-            201,
-          )
         }
 
         if (url.includes('/api/admin/company') && method === 'GET') {
@@ -202,11 +218,76 @@ describe('Phase 2 admin and public flows', () => {
           })
         }
 
+        if (url.includes('/api/admin/parts/1/images') && method === 'GET') {
+          return jsonResponse(currentAdminImages)
+        }
+
+        if (url.includes('/api/admin/parts/1/images') && method === 'POST') {
+          const formData = init?.body as FormData
+          const files = formData?.getAll('files') ?? []
+          const nextImages = files.map((file, index) => ({
+            id: currentAdminImages.length + index + 100,
+            url: `/uploads/part-images/1/${(file as File).name}`,
+            altText: (file as File).name,
+            sortOrder: currentAdminImages.length + index + 1,
+            placeholder: false,
+          }))
+          currentAdminImages = [...currentAdminImages, ...nextImages]
+          return jsonResponse({
+            ...galleryPart,
+            images: currentAdminImages,
+          })
+        }
+
         if (url.includes('/api/admin/parts/1') && method === 'GET') {
-          return jsonResponse(hondaEngine)
+          return jsonResponse({
+            ...galleryPart,
+            images: currentAdminImages,
+          })
+        }
+
+        if (url.includes('/api/admin/parts') && method === 'POST') {
+          return jsonResponse(
+            {
+              ...galleryPart,
+              id: 99,
+              sku: 'NEW-PART-001',
+              title: 'Created Test Part',
+            },
+            201,
+          )
+        }
+
+        if (url.includes('/api/admin/parts/1/images/order') && method === 'PATCH') {
+          const body = JSON.parse(String(init?.body ?? '{}')) as { imageIds: number[] }
+          currentAdminImages = body.imageIds
+            .map((imageId) => currentAdminImages.find((image) => image.id === imageId))
+            .filter((image): image is NonNullable<typeof image> => Boolean(image))
+            .map((image, index) => ({
+              ...image,
+              sortOrder: index + 1,
+            }))
+          return jsonResponse({
+            ...galleryPart,
+            images: currentAdminImages,
+          })
         }
 
         if (method === 'DELETE') {
+          if (url.includes('/api/admin/parts/1/images/')) {
+            const imageId = Number(url.split('/').pop())
+            currentAdminImages = currentAdminImages
+              .filter((image) => image.id !== imageId)
+              .map((image, index) => ({
+                ...image,
+                sortOrder: index + 1,
+              }))
+            return jsonResponse({
+              ...galleryPart,
+              images: currentAdminImages,
+            })
+          }
+
           return emptyResponse()
         }
 
@@ -226,6 +307,7 @@ describe('Phase 2 admin and public flows', () => {
     expect(await screen.findByRole('heading', { name: /recycled oem parts with a clear digital inventory path/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /search inventory/i })).toBeInTheDocument()
     expect(await screen.findByText(/2018 Honda Civic 2\.0L Engine Assembly/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /2019 camry camera/i })).toBeInTheDocument()
   })
 
   it('redirects unauthenticated admin routes to the login page', async () => {
@@ -271,6 +353,48 @@ describe('Phase 2 admin and public flows', () => {
         method: 'POST',
       }),
     )
+  })
+
+  it('renders the public part gallery with multiple ordered images', async () => {
+    const user = userEvent.setup()
+    renderApp('/inventory/1')
+
+    expect(await screen.findByRole('heading', { name: /2018 Honda Civic 2\.0L Engine Assembly/i })).toBeInTheDocument()
+    expect(screen.getAllByAltText(/front view/i).length).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('button', { name: /side view/i }))
+
+    expect(screen.getAllByAltText(/side view/i).length).toBeGreaterThan(0)
+  })
+
+  it('manages uploaded images from the admin part editor', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem('hybrid-admin-session', JSON.stringify(adminSession))
+    renderApp('/admin/parts/1/edit')
+
+    expect(await screen.findByRole('heading', { name: /update inventory details/i })).toBeInTheDocument()
+    expect(await screen.findByText(/upload and order the gallery/i)).toBeInTheDocument()
+
+    const fileInput = screen.getByLabelText(/upload part images/i)
+    await user.upload(fileInput, [new File(['binary'], 'rear-view.png', { type: 'image/png' })])
+
+    await waitFor(() => {
+      expect(screen.getByText(/rear-view\.png/i)).toBeInTheDocument()
+    })
+  })
+
+  it('shows active search state and clears it on the inventory page', async () => {
+    const user = userEvent.setup()
+    renderApp('/inventory?search=camry')
+
+    expect(await screen.findByText(/active search:/i)).toBeInTheDocument()
+    expect(screen.getByText(/^camry$/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /clear search/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByText(/^camry$/i)).not.toBeInTheDocument()
+    })
   })
 
   it('submits the company settings form and shows success feedback', async () => {

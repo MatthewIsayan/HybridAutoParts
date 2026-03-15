@@ -18,10 +18,7 @@ interface RequestJsonOptions {
 
 export async function requestJson<T>(path: string, options: RequestJsonOptions = {}): Promise<T> {
   const headers = new Headers()
-
-  if (options.body !== undefined) {
-    headers.set('Content-Type', 'application/json')
-  }
+  const requestBody = buildRequestBody(options.body, headers)
 
   if (options.token) {
     headers.set('Authorization', `Bearer ${options.token}`)
@@ -30,7 +27,7 @@ export async function requestJson<T>(path: string, options: RequestJsonOptions =
   const response = await fetch(path, {
     method: options.method ?? 'GET',
     headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body: requestBody,
   })
 
   const payload = await readResponsePayload(response)
@@ -44,10 +41,7 @@ export async function requestJson<T>(path: string, options: RequestJsonOptions =
 
 export async function requestVoid(path: string, options: RequestJsonOptions = {}) {
   const headers = new Headers()
-
-  if (options.body !== undefined) {
-    headers.set('Content-Type', 'application/json')
-  }
+  const requestBody = buildRequestBody(options.body, headers)
 
   if (options.token) {
     headers.set('Authorization', `Bearer ${options.token}`)
@@ -56,7 +50,7 @@ export async function requestVoid(path: string, options: RequestJsonOptions = {}
   const response = await fetch(path, {
     method: options.method ?? 'DELETE',
     headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body: requestBody,
   })
 
   const payload = await readResponsePayload(response)
@@ -64,6 +58,19 @@ export async function requestVoid(path: string, options: RequestJsonOptions = {}
   if (!response.ok) {
     throw new ApiClientError(payload.message ?? `Request failed for ${path}`, response.status, payload.fieldErrors)
   }
+}
+
+function buildRequestBody(body: unknown, headers: Headers) {
+  if (body === undefined) {
+    return undefined
+  }
+
+  if (typeof FormData !== 'undefined' && body instanceof FormData) {
+    return body
+  }
+
+  headers.set('Content-Type', 'application/json')
+  return JSON.stringify(body)
 }
 
 async function readResponsePayload(response: Response) {

@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/parts/{partId}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listImages"];
+        put?: never;
+        post: operations["uploadImages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/auth/login": {
         parameters: {
             query?: never;
@@ -82,6 +98,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["updateStatus"];
+        trace?: never;
+    };
+    "/api/admin/parts/{partId}/images/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["reorderImages"];
         trace?: never;
     };
     "/api/public/parts": {
@@ -159,6 +191,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/parts/{partId}/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteImage"];
         options?: never;
         head?: never;
         patch?: never;
@@ -256,6 +304,9 @@ export interface components {
         };
         AdminPartStatusRequest: {
             status: string;
+        };
+        AdminPartImageOrderRequest: {
+            imageIds: number[];
         };
         PartPageDto: {
             content?: components["schemas"]["PartDto"][];
@@ -451,6 +502,58 @@ export interface operations {
             };
         };
     };
+    listImages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PartImageDto"][];
+                };
+            };
+        };
+    };
+    uploadImages: {
+        parameters: {
+            query?: {
+                altTexts?: string[];
+            };
+            header?: never;
+            path: {
+                partId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    files: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PartDto"];
+                };
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -487,6 +590,32 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["AdminPartStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PartDto"];
+                };
+            };
+        };
+    };
+    reorderImages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPartImageOrderRequest"];
             };
         };
         responses: {
@@ -603,6 +732,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    deleteImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partId: number;
+                imageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PartDto"];
                 };
             };
         };

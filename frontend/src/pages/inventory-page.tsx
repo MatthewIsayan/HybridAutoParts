@@ -7,6 +7,7 @@ import { fetchInventoryPage, publicQueryKeys } from '@/lib/public-api'
 import { useSearchParams } from 'react-router-dom'
 
 const PAGE_SIZE = 12
+const EXAMPLE_SEARCHES = ['2019 camry camera', 'tesla heater core', 'model 3 mirror']
 
 function parsePage(value: string | null) {
   const parsed = Number.parseInt(value ?? '0', 10)
@@ -81,6 +82,29 @@ export function InventoryPage() {
         </div>
         <Button type="submit">Search</Button>
       </form>
+
+      <div className="flex flex-wrap gap-2">
+        {EXAMPLE_SEARCHES.map((searchExample) => (
+          <button
+            key={searchExample}
+            type="button"
+            onClick={() => updateSearchParams(0, searchExample)}
+            className="rounded-full border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+          >
+            {searchExample}
+          </button>
+        ))}
+      </div>
+
+      {activeSearch ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+          <span className="font-medium text-foreground">Active search:</span>
+          <span className="rounded-full bg-background px-3 py-1 text-muted-foreground">{activeSearch}</span>
+          <Button type="button" variant="outline" onClick={() => updateSearchParams(0, '')}>
+            Clear search
+          </Button>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <p>

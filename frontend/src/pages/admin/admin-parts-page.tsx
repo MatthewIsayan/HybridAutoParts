@@ -122,6 +122,17 @@ export function AdminPartsPage() {
         <Button type="submit">Search</Button>
       </form>
 
+      {(activeSearch || activeStatus) ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 px-4 py-3 text-sm text-slate-200">
+          <span className="font-medium">Active filters:</span>
+          {activeSearch ? <span className="rounded-full border border-slate-700 px-3 py-1 text-slate-300">Search: {activeSearch}</span> : null}
+          {activeStatus ? <span className="rounded-full border border-slate-700 px-3 py-1 text-slate-300">Status: {activeStatus}</span> : null}
+          <Button type="button" variant="adminOutline" onClick={() => updateParams(0, '', '')}>
+            Clear filters
+          </Button>
+        </div>
+      ) : null}
+
       <div className="flex items-center justify-between text-sm text-slate-400">
         <p>{partsQuery.isLoading ? 'Loading parts...' : `${totalLabel} in admin inventory.`}</p>
         {results ? (

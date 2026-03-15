@@ -172,6 +172,20 @@ class AdminInventoryControllerIT {
                 .andExpect(jsonPath("$.fieldErrors.price").value("Price must be greater than zero."));
     }
 
+    @Test
+    void supportsMultiTermRankedSearchInAdminInventory() throws Exception {
+        String token = loginAsAdmin();
+
+        mockMvc.perform(get("/api/admin/parts")
+                        .header("Authorization", bearerToken(token))
+                        .param("search", "2019 camry camera")
+                        .param("status", "AVAILABLE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(org.hamcrest.Matchers.greaterThan(0)))
+                .andExpect(jsonPath("$.content[0].title").value(org.hamcrest.Matchers.containsStringIgnoringCase("Camera")))
+                .andExpect(jsonPath("$.content[0].vehicleModel").value(org.hamcrest.Matchers.containsStringIgnoringCase("Camry")));
+    }
+
     private String loginAsAdmin() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/admin/auth/login")
                         .contentType(APPLICATION_JSON)

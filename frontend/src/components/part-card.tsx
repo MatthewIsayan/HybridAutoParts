@@ -23,10 +23,11 @@ export function PartCard({ part }: PartCardProps) {
   const primaryImage = part.images?.[0]
   const vehicleLabel = useMemo(() => formatVehicleLabel(part), [part])
   const imageLabel = primaryImage?.altText ?? `${part.title} placeholder`
+  const galleryCount = part.images?.length ?? 0
 
   return (
     <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-transform hover:-translate-y-0.5">
-      <div className="aspect-[4/3] border-b border-border bg-muted">
+      <div className="relative aspect-[4/3] border-b border-border bg-muted">
         {primaryImage?.url && !imageFailed ? (
           <img
             src={primaryImage.url}
@@ -40,6 +41,11 @@ export function PartCard({ part }: PartCardProps) {
             {imageLabel}
           </div>
         )}
+        {galleryCount > 1 ? (
+          <div className="absolute right-3 top-3 rounded-full bg-background/90 px-3 py-1 text-xs font-medium text-foreground shadow-sm">
+            {galleryCount} images
+          </div>
+        ) : null}
       </div>
       <div className="space-y-4 p-5">
         <div className="space-y-2">
