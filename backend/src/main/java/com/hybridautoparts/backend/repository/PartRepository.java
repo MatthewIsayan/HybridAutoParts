@@ -17,4 +17,11 @@ public interface PartRepository extends JpaRepository<Part, Long>, JpaSpecificat
 
     @EntityGraph(attributePaths = "images")
     Optional<Part> findByIdAndStatusIgnoreCase(Long id, String status);
+
+    @EntityGraph(attributePaths = "images")
+    Optional<Part> findDetailedById(Long id);
+
+    boolean existsBySkuIgnoreCase(String sku);
+
+    boolean existsBySkuIgnoreCaseAndIdNot(String sku, Long id);
 }

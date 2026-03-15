@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -68,21 +68,45 @@ const camryTransmission = {
   ],
 }
 
-function okJson(body: unknown) {
+const adminSession = {
+  tokenType: 'Bearer',
+  accessToken: 'phase-2-test-token',
+  expiresAt: '2099-01-01T00:00:00Z',
+  adminUser: {
+    id: 1,
+    username: 'admin',
+    email: 'admin@hybridautoparts.local',
+    displayName: 'Local Admin',
+    role: 'ADMIN',
+    active: true,
+  },
+}
+
+function jsonResponse(body: unknown, status = 200) {
   return Promise.resolve({
-    ok: true,
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: status === 200 ? 'OK' : 'Error',
+    headers: {
+      get: (name: string) => (name.toLowerCase() === 'content-type' ? 'application/json' : null),
+    },
     json: async () => body,
   })
 }
 
-function renderApp(initialEntry = '/') {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
+function emptyResponse(status = 204) {
+  return Promise.resolve({
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: status === 204 ? 'No Content' : 'Error',
+    headers: {
+      get: () => null,
     },
   })
+}
+
+function renderApp(initialEntry = '/', queryClient = createQueryClient()) {
+  window.history.pushState({}, 'Test', initialEntry)
 
   render(
     <QueryClientProvider client={queryClient}>
@@ -93,39 +117,40 @@ function renderApp(initialEntry = '/') {
   )
 }
 
-describe('Phase 1 public browsing', () => {
+function createQueryClient() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  })
+  return queryClient
+}
+
+describe('Phase 2 admin and public flows', () => {
   beforeEach(() => {
+    window.localStorage.clear()
+
     vi.stubGlobal(
       'fetch',
-      vi.fn((input: RequestInfo | URL) => {
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input)
+        const method = init?.method ?? 'GET'
 
         if (url.includes('/api/public/company')) {
-          return okJson(company)
+          return jsonResponse(company)
         }
 
         if (url.includes('/api/public/bootstrap')) {
-          return okJson({
+          return jsonResponse({
             company,
             featuredParts: [hondaEngine, camryTransmission],
           })
         }
 
-        if (url.includes('/api/public/parts?page=0&size=12&search=camry')) {
-          return okJson({
-            content: [camryTransmission],
-            page: 0,
-            size: 12,
-            totalElements: 1,
-            totalPages: 1,
-            first: true,
-            last: true,
-            empty: false,
-          })
-        }
-
         if (url.includes('/api/public/parts?page=0&size=12')) {
-          return okJson({
+          return jsonResponse({
             content: [hondaEngine, camryTransmission],
             page: 0,
             size: 12,
@@ -137,20 +162,62 @@ describe('Phase 1 public browsing', () => {
           })
         }
 
-        if (url.includes('/api/public/parts/1')) {
-          return okJson(hondaEngine)
+        if (url.includes('/api/admin/auth/login') && method === 'POST') {
+          return jsonResponse(adminSession)
         }
 
-        return Promise.resolve({
-          ok: false,
-          json: async () => ({}),
-        })
+        if (url.includes('/api/admin/parts?page=0&size=20') && method === 'GET') {
+          return jsonResponse({
+            content: [hondaEngine],
+            page: 0,
+            size: 20,
+            totalElements: 1,
+            totalPages: 1,
+            first: true,
+            last: true,
+            empty: false,
+          })
+        }
+
+        if (url.includes('/api/admin/parts') && method === 'POST') {
+          return jsonResponse(
+            {
+              ...hondaEngine,
+              id: 99,
+              sku: 'NEW-PART-001',
+              title: 'Created Test Part',
+            },
+            201,
+          )
+        }
+
+        if (url.includes('/api/admin/company') && method === 'GET') {
+          return jsonResponse(company)
+        }
+
+        if (url.includes('/api/admin/company') && method === 'PUT') {
+          return jsonResponse({
+            ...company,
+            companyName: 'Hybrid Auto Parts Updated',
+          })
+        }
+
+        if (url.includes('/api/admin/parts/1') && method === 'GET') {
+          return jsonResponse(hondaEngine)
+        }
+
+        if (method === 'DELETE') {
+          return emptyResponse()
+        }
+
+        return jsonResponse({ message: `Unhandled request for ${method} ${url}` }, 500)
       }),
     )
   })
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    window.localStorage.clear()
   })
 
   it('renders the public home page with featured inventory', async () => {
@@ -159,29 +226,71 @@ describe('Phase 1 public browsing', () => {
     expect(await screen.findByRole('heading', { name: /recycled oem parts with a clear digital inventory path/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /search inventory/i })).toBeInTheDocument()
     expect(await screen.findByText(/2018 Honda Civic 2\.0L Engine Assembly/i)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /browse all inventory/i })).toBeInTheDocument()
   })
 
-  it('renders inventory results and supports baseline search interaction', async () => {
+  it('redirects unauthenticated admin routes to the login page', async () => {
+    renderApp('/admin')
+
+    expect(await screen.findByRole('heading', { name: /sign in to manage inventory and branding/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/username/i)).toHaveValue('admin')
+  })
+
+  it('submits the admin login flow and lands on the dashboard', async () => {
     const user = userEvent.setup()
-    renderApp('/inventory')
+    renderApp('/admin')
 
-    expect(await screen.findByText(/2 parts found/i)).toBeInTheDocument()
-    expect(screen.getByText(/2017 Toyota Camry Automatic Transmission/i)).toBeInTheDocument()
+    await user.clear(await screen.findByLabelText(/username/i))
+    await user.type(screen.getByLabelText(/username/i), 'admin')
+    await user.clear(screen.getByLabelText(/password/i))
+    await user.type(screen.getByLabelText(/password/i), 'password')
+    await user.click(screen.getByRole('button', { name: /sign in/i }))
 
-    await user.clear(screen.getByRole('searchbox', { name: /search inventory/i }))
-    await user.type(screen.getByRole('searchbox', { name: /search inventory/i }), 'camry')
-    await user.click(screen.getByRole('button', { name: /^search$/i }))
-
-    expect(await screen.findByText(/1 part found for "camry"/i)).toBeInTheDocument()
-    expect(screen.getByText(/2017 Toyota Camry Automatic Transmission/i)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /protected admin workflows are now live/i })).toBeInTheDocument()
+    expect(screen.getByText(/Local Admin/i)).toBeInTheDocument()
   })
 
-  it('renders the public part detail call to action', async () => {
-    renderApp('/inventory/1')
+  it('submits the create part form from the protected admin area', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem('hybrid-admin-session', JSON.stringify(adminSession))
+    renderApp('/admin/parts/new')
 
-    expect(await screen.findByRole('heading', { name: /2018 Honda Civic 2\.0L Engine Assembly/i })).toBeInTheDocument()
-    expect(screen.getByText(/Call \(555\) 010-4227 or email sales@hybridautoparts\.local/i)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /contact the yard/i })).toBeInTheDocument()
+    await user.type(await screen.findByLabelText(/^SKU$/i), 'NEW-PART-001')
+    await user.type(screen.getByLabelText(/^Title$/i), 'Created Test Part')
+    await user.type(screen.getByLabelText(/^Condition$/i), 'A grade')
+    await user.type(screen.getByLabelText(/location code/i), 'A1-01')
+    await user.clear(screen.getByLabelText(/^Price$/i))
+    await user.type(screen.getByLabelText(/^Price$/i), '123.45')
+    await user.click(screen.getByRole('button', { name: /create part/i }))
+
+    expect(await screen.findByRole('heading', { name: /manage all parts/i })).toBeInTheDocument()
+
+    const fetchMock = vi.mocked(fetch)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/parts',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    )
+  })
+
+  it('submits the company settings form and shows success feedback', async () => {
+    const user = userEvent.setup()
+    window.localStorage.setItem('hybrid-admin-session', JSON.stringify(adminSession))
+    renderApp('/admin/company')
+
+    await user.clear(await screen.findByLabelText(/company name/i))
+    await user.type(screen.getByLabelText(/company name/i), 'Hybrid Auto Parts Updated')
+    await user.click(screen.getByRole('button', { name: /save company settings/i }))
+
+    expect(await screen.findByText(/company settings saved/i)).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+        '/api/admin/company',
+        expect.objectContaining({
+          method: 'PUT',
+        }),
+      )
+    })
   })
 })

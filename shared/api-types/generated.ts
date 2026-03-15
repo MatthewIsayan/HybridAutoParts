@@ -4,7 +4,39 @@
  */
 
 export interface paths {
-    "/api/public/parts": {
+    "/api/admin/parts/{partId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPart"];
+        put: operations["updatePart"];
+        post?: never;
+        delete: operations["deletePart"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/company": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCompanyConfig"];
+        put: operations["updateCompanyConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/parts": {
         parameters: {
             query?: never;
             header?: never;
@@ -12,6 +44,54 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listParts"];
+        put?: never;
+        post: operations["createPart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/parts/{partId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateStatus"];
+        trace?: never;
+    };
+    "/api/public/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listParts_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -27,7 +107,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getPart"];
+        get: operations["getPart_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -88,6 +168,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AdminPartRequest: {
+            sku: string;
+            title: string;
+            description?: string;
+            manufacturer?: string;
+            vehicleMake?: string;
+            vehicleModel?: string;
+            vehicleYear?: string;
+            condition: string;
+            status: string;
+            locationCode: string;
+            price: number;
+            featured?: boolean;
+        };
         PartDto: {
             /** Format: int64 */
             id?: number;
@@ -114,19 +208,17 @@ export interface components {
             sortOrder?: number;
             placeholder?: boolean;
         };
-        PartPageDto: {
-            content?: components["schemas"]["PartDto"][];
-            /** Format: int32 */
-            page?: number;
-            /** Format: int32 */
-            size?: number;
-            /** Format: int64 */
-            totalElements?: number;
-            /** Format: int32 */
-            totalPages?: number;
-            first?: boolean;
-            last?: boolean;
-            empty?: boolean;
+        CompanyConfigUpdateRequest: {
+            companyName: string;
+            supportEmail: string;
+            phone: string;
+            addressLine: string;
+            city: string;
+            state: string;
+            postalCode: string;
+            heroHeadline: string;
+            heroSubheadline: string;
+            aboutText: string;
         };
         CompanyConfigDto: {
             /** Format: int64 */
@@ -141,6 +233,43 @@ export interface components {
             heroHeadline?: string;
             heroSubheadline?: string;
             aboutText?: string;
+        };
+        AdminLoginRequest: {
+            username: string;
+            password: string;
+        };
+        AdminLoginResponse: {
+            tokenType?: string;
+            accessToken?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            adminUser?: components["schemas"]["AdminUserDto"];
+        };
+        AdminUserDto: {
+            /** Format: int64 */
+            id?: number;
+            username?: string;
+            email?: string;
+            displayName?: string;
+            role?: string;
+            active?: boolean;
+        };
+        AdminPartStatusRequest: {
+            status: string;
+        };
+        PartPageDto: {
+            content?: components["schemas"]["PartDto"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            empty?: boolean;
         };
         BootstrapResponseDto: {
             company?: components["schemas"]["CompanyConfigDto"];
@@ -161,7 +290,218 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getPart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PartDto"];
+                };
+            };
+        };
+    };
+    updatePart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPartRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PartDto"];
+                };
+            };
+        };
+    };
+    deletePart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getCompanyConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CompanyConfigDto"];
+                };
+            };
+        };
+    };
+    updateCompanyConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompanyConfigUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CompanyConfigDto"];
+                };
+            };
+        };
+    };
     listParts: {
+        parameters: {
+            query?: {
+                page?: number;
+                size?: number;
+                search?: string;
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PartPageDto"];
+                };
+            };
+        };
+    };
+    createPart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPartRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PartDto"];
+                };
+            };
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AdminLoginResponse"];
+                };
+            };
+        };
+    };
+    updateStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPartStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PartDto"];
+                };
+            };
+        };
+    };
+    listParts_1: {
         parameters: {
             query?: {
                 page?: number;
@@ -185,7 +525,7 @@ export interface operations {
             };
         };
     };
-    getPart: {
+    getPart_1: {
         parameters: {
             query?: never;
             header?: never;

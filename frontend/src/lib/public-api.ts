@@ -1,21 +1,12 @@
 import type { BootstrapResponse, CompanyConfig, Part, PartPage, PartPageQuery } from '@/types/api'
-
-async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(path)
-
-  if (!response.ok) {
-    throw new Error(`Request failed for ${path}`)
-  }
-
-  return (await response.json()) as T
-}
+import { requestJson } from '@/lib/http'
 
 export function fetchBootstrap() {
-  return fetchJson<BootstrapResponse>('/api/public/bootstrap')
+  return requestJson<BootstrapResponse>('/api/public/bootstrap')
 }
 
 export function fetchCompanyConfig() {
-  return fetchJson<CompanyConfig>('/api/public/company')
+  return requestJson<CompanyConfig>('/api/public/company')
 }
 
 export function fetchInventoryPage(query: PartPageQuery = {}) {
@@ -34,11 +25,11 @@ export function fetchInventoryPage(query: PartPageQuery = {}) {
   }
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : ''
-  return fetchJson<PartPage>(`/api/public/parts${suffix}`)
+  return requestJson<PartPage>(`/api/public/parts${suffix}`)
 }
 
 export function fetchPart(partId: string) {
-  return fetchJson<Part>(`/api/public/parts/${partId}`)
+  return requestJson<Part>(`/api/public/parts/${partId}`)
 }
 
 export const publicQueryKeys = {

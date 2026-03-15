@@ -10,6 +10,8 @@ const buttonVariants = cva(
       variant: {
         default: 'bg-primary text-primary-foreground hover:opacity-90',
         outline: 'border border-border bg-transparent text-foreground hover:bg-muted',
+        adminOutline:
+          'border border-slate-600 bg-slate-900 text-slate-50 shadow-sm hover:border-cyan-400/70 hover:bg-slate-800 hover:text-white',
       },
       size: {
         default: 'h-10 px-4 py-2',
