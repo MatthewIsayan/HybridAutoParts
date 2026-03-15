@@ -10,6 +10,12 @@ from typing import Any
 from urllib.parse import unquote, urlsplit
 
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_SOURCE_HTML = Path.home() / "Downloads" / "Items for sale by hybridonlyparts _ eBay.htm"
+DEFAULT_JSON_OUTPUT = REPO_ROOT / "seed-import" / "hybridonlyparts" / "items.json"
+DEFAULT_IMAGE_OUTPUT_DIR = REPO_ROOT / "frontend" / "public" / "images" / "seed" / "ebay" / "hybridonlyparts"
+
+
 CARD_PATTERN = re.compile(
     r'(<li[^>]*data-listingid="(?P<listing_id>\d+)"[^>]*class="s-card.*?</li>)',
     re.IGNORECASE | re.DOTALL,
@@ -176,17 +182,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Convert a saved eBay store HTML page into local JSON and copied images.")
     parser.add_argument(
         "--source-html",
-        default=r"c:\Users\User\Downloads\Items for sale by hybridonlyparts _ eBay.htm",
+        default=str(DEFAULT_SOURCE_HTML),
         help="Path to the saved eBay HTML file.",
     )
     parser.add_argument(
         "--json-output",
-        default=r"c:\HybridAutoParts\seed-import\hybridonlyparts\items.json",
+        default=str(DEFAULT_JSON_OUTPUT),
         help="Path for the generated JSON output.",
     )
     parser.add_argument(
         "--image-output-dir",
-        default=r"c:\HybridAutoParts\frontend\public\images\seed\ebay\hybridonlyparts",
+        default=str(DEFAULT_IMAGE_OUTPUT_DIR),
         help="Directory where local copied images should be written.",
     )
     args = parser.parse_args()

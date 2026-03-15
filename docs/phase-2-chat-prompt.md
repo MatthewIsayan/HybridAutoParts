@@ -1,4 +1,4 @@
-Phase 1 is complete in `c:\HybridAutoParts`. Please begin Phase 2 from `docs/phased-functional-spec.md`.
+Phase 1 is complete in this repository. Please begin Phase 2 from `docs/phased-functional-spec.md`.
 
 Current state:
 - Phase 0 and Phase 1 are implemented.

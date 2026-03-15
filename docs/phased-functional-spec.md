@@ -2,7 +2,7 @@
 
 ## Project Summary
 
-This document converts the source product brief in `c:\Users\User\Downloads\scrapyard_cursor_super_prompt.md` into an implementation-ready phased specification for `c:\HybridAutoParts`.
+This document converts the source product brief into an implementation-ready phased specification for this repository.
 
 The product is a reusable scrapyard inventory platform. The first branded deployment is for Hybrid Auto Parts in Sun Valley, California, but the system must be structured so it can later support multiple scrapyards with configurable branding and business information.
 

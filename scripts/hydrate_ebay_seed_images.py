@@ -10,8 +10,9 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
-DEFAULT_ITEMS_JSON = Path(r"c:\HybridAutoParts\seed-import\hybridonlyparts\items.json")
-DEFAULT_OUTPUT_DIR = Path(r"c:\HybridAutoParts\frontend\public\images\seed\ebay\hybridonlyparts")
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_ITEMS_JSON = REPO_ROOT / "seed-import" / "hybridonlyparts" / "items.json"
+DEFAULT_OUTPUT_DIR = REPO_ROOT / "frontend" / "public" / "images" / "seed" / "ebay" / "hybridonlyparts"
 REQUEST_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

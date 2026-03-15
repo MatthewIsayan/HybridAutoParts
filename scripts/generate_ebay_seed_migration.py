@@ -7,8 +7,9 @@ from decimal import Decimal
 from pathlib import Path
 
 
-SOURCE_JSON = Path(r"c:\HybridAutoParts\seed-import\hybridonlyparts\items.json")
-OUTPUT_SQL = Path(r"c:\HybridAutoParts\backend\src\main\resources\db\migration\V3__import_hybridonlyparts_seed_inventory.sql")
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SOURCE_JSON = REPO_ROOT / "seed-import" / "hybridonlyparts" / "items.json"
+OUTPUT_SQL = REPO_ROOT / "backend" / "src" / "main" / "resources" / "db" / "migration" / "V3__import_hybridonlyparts_seed_inventory.sql"
 
 COMPANY = {
     "company_name": "Hybrid Auto Parts",
