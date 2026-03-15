@@ -1,4 +1,14 @@
-const rawApiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() ?? ''
+declare global {
+  interface Window {
+    __APP_CONFIG__?: {
+      VITE_API_BASE_URL?: string
+    }
+  }
+}
+
+const runtimeApiBaseUrl = window.__APP_CONFIG__?.VITE_API_BASE_URL?.trim() ?? ''
+const buildTimeApiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() ?? ''
+const rawApiBaseUrl = runtimeApiBaseUrl || buildTimeApiBaseUrl
 
 export const API_BASE_URL = rawApiBaseUrl.replace(/\/+$/, '')
 

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Use Railway as a low-cost shared demo environment backed by the existing Flyway seed data. This is intentionally not a production deployment shape yet.
+Publish tagged Docker images for a shared demo release while keeping Railway setup manual. This is intentionally not a production deployment shape yet.
 
 ## Demo Environment Shape
 
@@ -17,16 +17,29 @@ The demo environment should use:
 - a persistent volume mounted to `/app/uploads` on the backend service
 - a tagged release convention such as `demo-v0.1.0`
 
+## Image Publishing
+
+The release workflow publishes two images to GitHub Container Registry on tags such as `demo-v0.1.0`:
+
+- `ghcr.io/<owner>/hybrid-auto-parts-backend:demo-v0.1.0`
+- `ghcr.io/<owner>/hybrid-auto-parts-frontend:demo-v0.1.0`
+
+It also updates:
+
+- `ghcr.io/<owner>/hybrid-auto-parts-backend:demo-latest`
+- `ghcr.io/<owner>/hybrid-auto-parts-frontend:demo-latest`
+
+The workflow does not create or update Railway services anymore. It only verifies the repo, then builds and pushes versioned Docker images.
+
 ## Railway Service Setup
 
 ### Backend service
 
-Set these Railway variables on the backend service:
+When you manually wire Railway to the published backend image, set these variables:
 
-- `RAILWAY_DOCKERFILE_PATH=backend/Dockerfile`
 - `SPRING_PROFILES_ACTIVE=demo`
 - `APP_ENVIRONMENT=demo`
-- `APP_RELEASE_VERSION=demo-v0.1.0`
+- `APP_RELEASE_VERSION=<matching demo tag>`
 - `SPRING_DATASOURCE_URL=<Railway Postgres JDBC URL>`
 - `SPRING_DATASOURCE_USERNAME=<Railway Postgres user>`
 - `SPRING_DATASOURCE_PASSWORD=<Railway Postgres password>`
@@ -39,12 +52,11 @@ Attach a persistent volume at `/app/uploads` so admin image uploads survive rede
 
 ### Frontend service
 
-Set these Railway variables on the frontend service:
+When you manually wire Railway to the published frontend image, set:
 
-- `RAILWAY_DOCKERFILE_PATH=frontend/Dockerfile`
 - `VITE_API_BASE_URL=https://<backend-domain>`
 
-The frontend is now built to call the backend directly, so no Nginx proxying is required between services.
+The frontend container now reads `VITE_API_BASE_URL` at runtime, so you can reuse the same published image across environments without rebuilding it.
 
 ### Postgres service
 
@@ -74,20 +86,17 @@ Keep `APP_RELEASE_VERSION` aligned with the current deployed tag so `/actuator/i
 Two workflows are included:
 
 - `ci.yml`: runs backend tests plus frontend test and build validation
-- `demo-deploy.yml`: deploys tagged demo releases to Railway
+- `demo-deploy.yml`: publishes tagged demo images to GitHub Container Registry
 
-Required repository secrets:
+No extra registry secret is required for publishing to GHCR from Actions because the workflow uses the repository `GITHUB_TOKEN`.
 
-- `RAILWAY_TOKEN`
-- `RAILWAY_BACKEND_SERVICE_ID`
-- `RAILWAY_FRONTEND_SERVICE_ID`
-
-`RAILWAY_TOKEN` must be a Railway project token, not a personal API token.
+If Railway needs credentials to pull private GHCR packages later, either make the packages public or configure GHCR pull credentials in Railway.
 
 ## Suggested Demo Checklist
 
-After each demo deploy:
+After each demo image release:
 
+- confirm both images were published in GHCR with the new tag
 - open the frontend domain and confirm the homepage loads
 - confirm featured inventory renders
 - confirm inventory search works
