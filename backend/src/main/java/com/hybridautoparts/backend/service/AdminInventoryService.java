@@ -27,15 +27,18 @@ public class AdminInventoryService {
     private final PartRepository partRepository;
     private final PartSearchRepository partSearchRepository;
     private final PartMapper partMapper;
+    private final AdminAuditLogger adminAuditLogger;
 
     public AdminInventoryService(
             PartRepository partRepository,
             PartSearchRepository partSearchRepository,
-            PartMapper partMapper
+            PartMapper partMapper,
+            AdminAuditLogger adminAuditLogger
     ) {
         this.partRepository = partRepository;
         this.partSearchRepository = partSearchRepository;
         this.partMapper = partMapper;
+        this.adminAuditLogger = adminAuditLogger;
     }
 
     @Transactional(readOnly = true)
@@ -73,7 +76,9 @@ public class AdminInventoryService {
 
         Part part = new Part();
         applyRequest(part, request);
-        return partMapper.toDto(partRepository.save(part));
+        Part savedPart = partRepository.save(part);
+        adminAuditLogger.logPartCreated(savedPart.getId(), savedPart.getSku(), savedPart.getStatus());
+        return partMapper.toDto(savedPart);
     }
 
     @Transactional
@@ -83,7 +88,9 @@ public class AdminInventoryService {
 
         validateSkuUniqueness(request.sku(), partId);
         applyRequest(part, request);
-        return partMapper.toDto(partRepository.save(part));
+        Part savedPart = partRepository.save(part);
+        adminAuditLogger.logPartUpdated(savedPart.getId(), savedPart.getSku(), savedPart.getStatus());
+        return partMapper.toDto(savedPart);
     }
 
     @Transactional
@@ -91,17 +98,19 @@ public class AdminInventoryService {
         Part part = partRepository.findDetailedById(partId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Part was not found."));
 
+        String previousStatus = part.getStatus();
         part.setStatus(normalizeRequired(status));
-        return partMapper.toDto(partRepository.save(part));
+        Part savedPart = partRepository.save(part);
+        adminAuditLogger.logPartStatusChanged(savedPart.getId(), savedPart.getSku(), previousStatus, savedPart.getStatus());
+        return partMapper.toDto(savedPart);
     }
 
     @Transactional
     public void deletePart(long partId) {
-        if (!partRepository.existsById(partId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Part was not found.");
-        }
-
-        partRepository.deleteById(partId);
+        Part part = partRepository.findById(partId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Part was not found."));
+        partRepository.delete(part);
+        adminAuditLogger.logPartDeleted(partId, part.getSku());
     }
 
     private void applyRequest(Part part, AdminPartRequest request) {

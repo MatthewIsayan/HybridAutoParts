@@ -1,8 +1,10 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 import type { AdminSession } from '@/types/api'
 
 const ADMIN_SESSION_STORAGE_KEY = 'hybrid-admin-session'
+const ADMIN_AUTH_NOTICE_STORAGE_KEY = 'hybrid-admin-auth-notice'
+export const ADMIN_SESSION_EXPIRED_EVENT = 'hybrid-admin-session-expired'
 
 interface AdminAuthContextValue {
   session: AdminSession | null
@@ -16,6 +18,17 @@ const AdminAuthContext = createContext<AdminAuthContextValue | undefined>(undefi
 
 export function AdminAuthProvider({ children }: PropsWithChildren) {
   const [session, setSessionState] = useState<AdminSession | null>(() => readStoredSession())
+
+  useEffect(() => {
+    function handleSessionExpired() {
+      setSessionState(null)
+      window.localStorage.removeItem(ADMIN_SESSION_STORAGE_KEY)
+      window.sessionStorage.setItem(ADMIN_AUTH_NOTICE_STORAGE_KEY, 'Your admin session expired. Please sign in again.')
+    }
+
+    window.addEventListener(ADMIN_SESSION_EXPIRED_EVENT, handleSessionExpired)
+    return () => window.removeEventListener(ADMIN_SESSION_EXPIRED_EVENT, handleSessionExpired)
+  }, [])
 
   const value = useMemo<AdminAuthContextValue>(
     () => ({
@@ -45,6 +58,20 @@ export function useAdminAuth() {
   }
 
   return context
+}
+
+export function consumeAdminAuthNotice() {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const message = window.sessionStorage.getItem(ADMIN_AUTH_NOTICE_STORAGE_KEY)
+  if (!message) {
+    return null
+  }
+
+  window.sessionStorage.removeItem(ADMIN_AUTH_NOTICE_STORAGE_KEY)
+  return message
 }
 
 function readStoredSession(): AdminSession | null {

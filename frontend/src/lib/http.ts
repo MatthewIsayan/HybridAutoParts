@@ -1,3 +1,5 @@
+import { ADMIN_SESSION_EXPIRED_EVENT } from '@/lib/auth'
+
 export class ApiClientError extends Error {
   status: number
   fieldErrors: Record<string, string>
@@ -33,6 +35,7 @@ export async function requestJson<T>(path: string, options: RequestJsonOptions =
   const payload = await readResponsePayload(response)
 
   if (!response.ok) {
+    notifyUnauthorizedSession(options.token, response.status)
     throw new ApiClientError(payload.message ?? `Request failed for ${path}`, response.status, payload.fieldErrors)
   }
 
@@ -56,6 +59,7 @@ export async function requestVoid(path: string, options: RequestJsonOptions = {}
   const payload = await readResponsePayload(response)
 
   if (!response.ok) {
+    notifyUnauthorizedSession(options.token, response.status)
     throw new ApiClientError(payload.message ?? `Request failed for ${path}`, response.status, payload.fieldErrors)
   }
 }
@@ -94,4 +98,12 @@ async function readResponsePayload(response: Response) {
     message: data.message,
     fieldErrors: data.fieldErrors ?? {},
   }
+}
+
+function notifyUnauthorizedSession(token: string | undefined, status: number) {
+  if (typeof window === 'undefined' || !token || status !== 401) {
+    return
+  }
+
+  window.dispatchEvent(new Event(ADMIN_SESSION_EXPIRED_EVENT))
 }

@@ -35,6 +35,7 @@ export function InventoryPage() {
   const currentPage = results?.page ?? page
   const totalPages = results?.totalPages ?? 0
   const totalElements = results?.totalElements ?? 0
+  const isRefreshing = inventoryQuery.isFetching && !inventoryQuery.isLoading
 
   function updateSearchParams(nextPage: number, nextSearch: string) {
     const params = new URLSearchParams()
@@ -114,14 +115,19 @@ export function InventoryPage() {
         </p>
         {results ? (
           <p>
-            Page {currentPage + 1} of {Math.max(totalPages, 1)}
+            {isRefreshing ? 'Updating results...' : `Page ${currentPage + 1} of ${Math.max(totalPages, 1)}`}
           </p>
         ) : null}
       </div>
 
       {inventoryQuery.isError ? (
-        <div className="rounded-3xl border border-destructive/30 bg-card px-6 py-10 text-center text-muted-foreground">
-          Inventory data could not be loaded right now.
+        <div className="space-y-4 rounded-3xl border border-destructive/30 bg-card px-6 py-10 text-center text-muted-foreground">
+          <p>Inventory data could not be loaded right now.</p>
+          <div className="flex justify-center">
+            <Button type="button" variant="outline" onClick={() => inventoryQuery.refetch()}>
+              Retry inventory
+            </Button>
+          </div>
         </div>
       ) : null}
 

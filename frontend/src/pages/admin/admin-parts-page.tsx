@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { adminQueryKeys, deleteAdminPart, fetchAdminParts, updateAdminPartStatus } from '@/lib/admin-api'
 import { useAdminAuth } from '@/lib/auth'
+import { ApiClientError } from '@/lib/http'
 
 const PAGE_SIZE = 20
 
@@ -14,14 +15,31 @@ function parsePage(value: string | null) {
 }
 
 export function AdminPartsPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
   const { adminToken } = useAdminAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
+  const [pageNotice, setPageNotice] = useState<string | null>(null)
   const page = parsePage(searchParams.get('page'))
   const activeSearch = searchParams.get('search')?.trim() ?? ''
   const activeStatus = searchParams.get('status')?.trim() ?? ''
   const [searchDraft, setSearchDraft] = useState(activeSearch)
+
+  useEffect(() => {
+    setSearchDraft(activeSearch)
+  }, [activeSearch])
+
+  useEffect(() => {
+    const nextNotice = (location.state as { notice?: string } | null)?.notice
+    if (!nextNotice) {
+      return
+    }
+
+    setPageNotice(nextNotice)
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
+  }, [location.pathname, location.search, location.state, navigate])
 
   const partsQuery = useQuery({
     queryKey: adminQueryKeys.parts({ page, size: PAGE_SIZE, search: activeSearch, status: activeStatus }),
@@ -34,11 +52,15 @@ export function AdminPartsPage() {
     mutationFn: (partId: string) => deleteAdminPart(adminToken ?? '', partId),
     onSuccess: async () => {
       setPendingDeleteId(null)
+      setPageNotice('Part deleted.')
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['admin', 'parts'] }),
         queryClient.invalidateQueries({ queryKey: ['public', 'inventory'] }),
         queryClient.invalidateQueries({ queryKey: ['public', 'bootstrap'] }),
       ])
+    },
+    onError: (error) => {
+      setPageNotice(resolveMutationError(error, 'Part delete failed.'))
     },
   })
 
@@ -46,6 +68,7 @@ export function AdminPartsPage() {
     mutationFn: ({ partId, status }: { partId: string; status: string }) =>
       updateAdminPartStatus(adminToken ?? '', partId, { status }),
     onSuccess: async (_, variables) => {
+      setPageNotice(`Part status updated to ${variables.status}.`)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['admin', 'parts'] }),
         queryClient.invalidateQueries({ queryKey: adminQueryKeys.part(variables.partId) }),
@@ -54,10 +77,14 @@ export function AdminPartsPage() {
         queryClient.invalidateQueries({ queryKey: ['public', 'bootstrap'] }),
       ])
     },
+    onError: (error) => {
+      setPageNotice(resolveMutationError(error, 'Part status update failed.'))
+    },
   })
 
   const results = partsQuery.data
   const parts = results?.content ?? []
+  const isRefreshing = partsQuery.isFetching && !partsQuery.isLoading
 
   const totalLabel = useMemo(() => {
     const total = results?.totalElements ?? 0
@@ -100,6 +127,10 @@ export function AdminPartsPage() {
         </Button>
       </div>
 
+      {pageNotice ? (
+        <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">{pageNotice}</div>
+      ) : null}
+
       <form className="grid gap-3 rounded-3xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-[1fr_220px_auto]" onSubmit={handleSubmit}>
         <input
           type="search"
@@ -137,14 +168,19 @@ export function AdminPartsPage() {
         <p>{partsQuery.isLoading ? 'Loading parts...' : `${totalLabel} in admin inventory.`}</p>
         {results ? (
           <p>
-            Page {(results.page ?? 0) + 1} of {Math.max(results.totalPages ?? 1, 1)}
+            {isRefreshing ? 'Refreshing inventory...' : `Page ${(results.page ?? 0) + 1} of ${Math.max(results.totalPages ?? 1, 1)}`}
           </p>
         ) : null}
       </div>
 
       {partsQuery.isError ? (
-        <div className="rounded-3xl border border-rose-500/20 bg-rose-500/10 px-6 py-10 text-center text-rose-100">
-          Admin inventory could not be loaded right now.
+        <div className="space-y-4 rounded-3xl border border-rose-500/20 bg-rose-500/10 px-6 py-10 text-center text-rose-100">
+          <p>Admin inventory could not be loaded right now.</p>
+          <div className="flex justify-center">
+            <Button type="button" variant="adminOutline" onClick={() => partsQuery.refetch()}>
+              Retry inventory
+            </Button>
+          </div>
         </div>
       ) : null}
 
@@ -155,8 +191,66 @@ export function AdminPartsPage() {
       ) : null}
 
       {parts.length > 0 ? (
-        <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900">
-          <table className="min-w-full divide-y divide-slate-800 text-left text-sm">
+        <>
+          <div className="grid gap-4 md:hidden">
+            {parts.map((part) => {
+              const vehicleLabel = [part.vehicleYear, part.vehicleMake, part.vehicleModel].filter(Boolean).join(' ')
+              const isDeleting = pendingDeleteId === part.id
+
+              return (
+                <article key={part.id} className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900 p-5">
+                  <div className="space-y-2">
+                    <p className="text-lg font-semibold text-slate-50">{part.title}</p>
+                    <p className="text-sm text-slate-400">{part.sku}</p>
+                    <p className="text-sm text-slate-300">{vehicleLabel || 'Vehicle details pending'}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300">
+                    <span className="rounded-full border border-slate-700 px-3 py-1 text-xs uppercase tracking-[0.16em] text-cyan-200">
+                      {part.status}
+                    </span>
+                    <span>${Number(part.price ?? 0).toFixed(2)}</span>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="block text-sm text-slate-300">
+                      <span className="mb-2 block">Quick status</span>
+                      <select
+                        value={part.status ?? 'AVAILABLE'}
+                        onChange={(event) => statusMutation.mutate({ partId: String(part.id), status: event.target.value })}
+                        disabled={statusMutation.isPending}
+                        className="h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-slate-50 outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-400"
+                      >
+                        <option value="AVAILABLE">Available</option>
+                        <option value="HOLD">Hold</option>
+                        <option value="SOLD">Sold</option>
+                      </select>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild variant="adminOutline">
+                        <Link to={`/admin/parts/${part.id}/edit`}>Edit</Link>
+                      </Button>
+                      {isDeleting ? (
+                        <>
+                          <Button type="button" onClick={() => deleteMutation.mutate(String(part.id))} disabled={deleteMutation.isPending}>
+                            Confirm delete
+                          </Button>
+                          <Button type="button" variant="adminOutline" onClick={() => setPendingDeleteId(null)}>
+                            Cancel
+                          </Button>
+                        </>
+                      ) : (
+                        <Button type="button" variant="adminOutline" onClick={() => setPendingDeleteId(part.id ?? null)}>
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-3xl border border-slate-800 bg-slate-900 md:block">
+            <table className="min-w-full divide-y divide-slate-800 text-left text-sm">
             <thead className="bg-slate-950/70 text-slate-400">
               <tr>
                 <th className="px-4 py-3 font-medium">Part</th>
@@ -170,7 +264,6 @@ export function AdminPartsPage() {
               {parts.map((part) => {
                 const vehicleLabel = [part.vehicleYear, part.vehicleMake, part.vehicleModel].filter(Boolean).join(' ')
                 const isDeleting = pendingDeleteId === part.id
-                const nextStatus = part.status === 'AVAILABLE' ? 'SOLD' : 'AVAILABLE'
 
                 return (
                   <tr key={part.id}>
@@ -180,23 +273,23 @@ export function AdminPartsPage() {
                     </td>
                     <td className="px-4 py-4 align-top text-slate-300">{vehicleLabel || 'Vehicle details pending'}</td>
                     <td className="px-4 py-4 align-top">
-                      <span className="rounded-full border border-slate-700 px-3 py-1 text-xs uppercase tracking-[0.16em] text-cyan-200">
-                        {part.status}
-                      </span>
+                      <select
+                        aria-label={`Update status for ${part.title}`}
+                        value={part.status ?? 'AVAILABLE'}
+                        onChange={(event) => statusMutation.mutate({ partId: String(part.id), status: event.target.value })}
+                        disabled={statusMutation.isPending}
+                        className="h-10 min-w-[150px] rounded-xl border border-slate-700 bg-slate-950 px-3 text-slate-50 outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-400"
+                      >
+                        <option value="AVAILABLE">Available</option>
+                        <option value="HOLD">Hold</option>
+                        <option value="SOLD">Sold</option>
+                      </select>
                     </td>
                     <td className="px-4 py-4 align-top text-slate-300">${Number(part.price ?? 0).toFixed(2)}</td>
                     <td className="px-4 py-4 align-top">
                       <div className="flex flex-wrap gap-2">
                         <Button asChild variant="adminOutline">
                           <Link to={`/admin/parts/${part.id}/edit`}>Edit</Link>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="adminOutline"
-                          onClick={() => statusMutation.mutate({ partId: String(part.id), status: nextStatus })}
-                          disabled={statusMutation.isPending}
-                        >
-                          Mark {nextStatus.toLowerCase()}
                         </Button>
                         {isDeleting ? (
                           <>
@@ -222,12 +315,13 @@ export function AdminPartsPage() {
                 )
               })}
             </tbody>
-          </table>
-        </div>
+            </table>
+          </div>
+        </>
       ) : null}
 
       {results && (results.totalPages ?? 0) > 1 ? (
-        <div className="flex items-center justify-between rounded-3xl border border-slate-800 bg-slate-900 p-4">
+        <div className="flex flex-col gap-3 rounded-3xl border border-slate-800 bg-slate-900 p-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-400">Navigate through the protected inventory results.</p>
           <div className="flex gap-3">
             <Button
@@ -251,4 +345,16 @@ export function AdminPartsPage() {
       ) : null}
     </section>
   )
+}
+
+function resolveMutationError(error: unknown, fallbackMessage: string) {
+  if (error instanceof ApiClientError) {
+    return error.message
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return fallbackMessage
 }

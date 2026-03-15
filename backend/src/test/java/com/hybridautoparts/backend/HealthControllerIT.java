@@ -1,6 +1,7 @@
 package com.hybridautoparts.backend;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -23,6 +24,7 @@ class HealthControllerIT {
     void returnsCustomHealthPayload() throws Exception {
         mockMvc.perform(get("/api/health"))
                 .andExpect(status().isOk())
+                .andExpect(header().exists("X-Request-Id"))
                 .andExpect(jsonPath("$.status").value("ok"))
                 .andExpect(jsonPath("$.service").value("hybrid-auto-parts-backend"));
     }

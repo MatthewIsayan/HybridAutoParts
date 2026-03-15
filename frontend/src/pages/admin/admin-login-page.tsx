@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { useAdminAuth } from '@/lib/auth'
+import { consumeAdminAuthNotice, useAdminAuth } from '@/lib/auth'
 import { ApiClientError } from '@/lib/http'
 import { loginAdmin } from '@/lib/admin-api'
 
@@ -14,6 +14,13 @@ export function AdminLoginPage() {
   const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('password')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    const authNotice = consumeAdminAuthNotice()
+    if (authNotice) {
+      setErrorMessage(authNotice)
+    }
+  }, [])
 
   const loginMutation = useMutation({
     mutationFn: loginAdmin,

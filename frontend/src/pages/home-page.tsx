@@ -77,6 +77,11 @@ export function HomePage() {
               </button>
             ))}
           </div>
+          {bootstrapQuery.isError ? (
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              Live homepage data could not be loaded. Fallback copy is being shown instead.
+            </div>
+          ) : null}
         </div>
         <div className="rounded-2xl border border-border bg-background p-6">
           <p className="text-sm font-medium text-muted-foreground">Company profile</p>
@@ -116,17 +121,36 @@ export function HomePage() {
           </p>
         </div>
 
+        {bootstrapQuery.isLoading ? (
+          <div className="rounded-3xl border border-dashed border-border bg-card px-6 py-10 text-center text-muted-foreground">
+            Loading featured inventory...
+          </div>
+        ) : null}
+
+        {bootstrapQuery.isError ? (
+          <div className="space-y-4 rounded-3xl border border-destructive/20 bg-card px-6 py-10 text-center text-muted-foreground">
+            <p>Featured inventory could not be loaded from the public API.</p>
+            <div className="flex justify-center">
+              <Button type="button" variant="outline" onClick={() => bootstrapQuery.refetch()}>
+                Retry featured inventory
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         {featuredParts.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-3">
             {featuredParts.map((part) => (
               <PartCard key={part.id} part={part} />
             ))}
           </div>
-        ) : (
+        ) : null}
+
+        {!bootstrapQuery.isLoading && !bootstrapQuery.isError && featuredParts.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border bg-card px-6 py-10 text-center text-muted-foreground">
             Featured inventory will appear here once the public API responds.
           </div>
-        )}
+        ) : null}
       </section>
     </div>
   )

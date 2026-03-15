@@ -102,6 +102,16 @@ const adminSession = {
   },
 }
 
+type TestScenario = {
+  bootstrapFails?: boolean
+  publicInventoryFails?: boolean
+  adminCompanyFails?: boolean
+  adminCompanyUnauthorized?: boolean
+  adminImagesFail?: boolean
+}
+
+let scenario: TestScenario
+
 function jsonResponse(body: unknown, status = 200) {
   return Promise.resolve({
     ok: status >= 200 && status < 300,
@@ -151,6 +161,7 @@ function createQueryClient() {
 describe('Phase 2 admin and public flows', () => {
   beforeEach(() => {
     window.localStorage.clear()
+    scenario = {}
     let currentAdminImages = [...galleryPart.images]
 
     vi.stubGlobal(
@@ -164,6 +175,10 @@ describe('Phase 2 admin and public flows', () => {
         }
 
         if (url.includes('/api/public/bootstrap')) {
+          if (scenario.bootstrapFails) {
+            return jsonResponse({ message: 'Bootstrap failed.' }, 500)
+          }
+
           return jsonResponse({
             company,
             featuredParts: [galleryPart, camryTransmission],
@@ -178,6 +193,10 @@ describe('Phase 2 admin and public flows', () => {
         }
 
         if (url.includes('/api/public/parts?page=0&size=12')) {
+          if (scenario.publicInventoryFails) {
+            return jsonResponse({ message: 'Inventory failed.' }, 500)
+          }
+
           return jsonResponse({
             content: [{ ...galleryPart, images: currentAdminImages }, camryTransmission],
             page: 0,
@@ -208,6 +227,14 @@ describe('Phase 2 admin and public flows', () => {
         }
 
         if (url.includes('/api/admin/company') && method === 'GET') {
+          if (scenario.adminCompanyUnauthorized) {
+            return jsonResponse({ message: 'Unauthorized' }, 401)
+          }
+
+          if (scenario.adminCompanyFails) {
+            return jsonResponse({ message: 'Company load failed.' }, 500)
+          }
+
           return jsonResponse(company)
         }
 
@@ -219,6 +246,10 @@ describe('Phase 2 admin and public flows', () => {
         }
 
         if (url.includes('/api/admin/parts/1/images') && method === 'GET') {
+          if (scenario.adminImagesFail) {
+            return jsonResponse({ message: 'Images failed.' }, 500)
+          }
+
           return jsonResponse(currentAdminImages)
         }
 
@@ -310,6 +341,14 @@ describe('Phase 2 admin and public flows', () => {
     expect(screen.getByRole('button', { name: /2019 camry camera/i })).toBeInTheDocument()
   })
 
+  it('shows fallback messaging when bootstrap loading fails', async () => {
+    scenario.bootstrapFails = true
+    renderApp('/')
+
+    expect(await screen.findByText(/live homepage data could not be loaded/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /retry featured inventory/i })).toBeInTheDocument()
+  })
+
   it('redirects unauthenticated admin routes to the login page', async () => {
     renderApp('/admin')
 
@@ -397,6 +436,14 @@ describe('Phase 2 admin and public flows', () => {
     })
   })
 
+  it('shows a retry state when public inventory loading fails', async () => {
+    scenario.publicInventoryFails = true
+    renderApp('/inventory')
+
+    expect(await screen.findByText(/inventory data could not be loaded right now/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /retry inventory/i })).toBeInTheDocument()
+  })
+
   it('submits the company settings form and shows success feedback', async () => {
     const user = userEvent.setup()
     window.localStorage.setItem('hybrid-admin-session', JSON.stringify(adminSession))
@@ -416,5 +463,32 @@ describe('Phase 2 admin and public flows', () => {
         }),
       )
     })
+  })
+
+  it('shows a retry panel when admin company settings fail to load', async () => {
+    scenario.adminCompanyFails = true
+    window.localStorage.setItem('hybrid-admin-session', JSON.stringify(adminSession))
+    renderApp('/admin/company')
+
+    expect(await screen.findByText(/company settings could not be loaded right now/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /retry loading settings/i })).toBeInTheDocument()
+  })
+
+  it('returns to login when an admin session becomes unauthorized', async () => {
+    scenario.adminCompanyUnauthorized = true
+    window.localStorage.setItem('hybrid-admin-session', JSON.stringify(adminSession))
+    renderApp('/admin/company')
+
+    expect(await screen.findByRole('heading', { name: /sign in to manage inventory and branding/i })).toBeInTheDocument()
+    expect(screen.getByText(/your admin session expired/i)).toBeInTheDocument()
+  })
+
+  it('shows an image retry state when the admin gallery panel fails to load', async () => {
+    scenario.adminImagesFail = true
+    window.localStorage.setItem('hybrid-admin-session', JSON.stringify(adminSession))
+    renderApp('/admin/parts/1/edit')
+
+    expect(await screen.findByText(/part images could not be loaded right now/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /retry image panel/i })).toBeInTheDocument()
   })
 })

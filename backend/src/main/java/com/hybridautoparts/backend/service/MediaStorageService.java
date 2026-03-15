@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class MediaStorageService {
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp");
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("image/jpeg", "image/png", "image/gif", "image/webp");
 
     private final MediaProperties mediaProperties;
 
@@ -31,6 +32,7 @@ public class MediaStorageService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uploaded image files must not be empty.");
         }
 
+        validateContentType(file.getContentType());
         String extension = extractAllowedExtension(file.getOriginalFilename());
         String fileName = UUID.randomUUID() + "." + extension;
         Path relativePath = Path.of("part-images", String.valueOf(partId), fileName);
@@ -108,6 +110,12 @@ public class MediaStorageService {
         }
 
         return normalizedExtension;
+    }
+
+    private void validateContentType(String contentType) {
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uploaded images must use a supported image content type.");
+        }
     }
 
     public record StoredMediaFile(

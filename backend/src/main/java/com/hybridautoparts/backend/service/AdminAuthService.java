@@ -29,27 +29,39 @@ public class AdminAuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtEncoder jwtEncoder;
     private final JwtProperties jwtProperties;
+    private final AdminAuditLogger adminAuditLogger;
 
     public AdminAuthService(
             AdminUserRepository adminUserRepository,
             AdminUserMapper adminUserMapper,
             PasswordEncoder passwordEncoder,
             JwtEncoder jwtEncoder,
-            JwtProperties jwtProperties
+            JwtProperties jwtProperties,
+            AdminAuditLogger adminAuditLogger
     ) {
         this.adminUserRepository = adminUserRepository;
         this.adminUserMapper = adminUserMapper;
         this.passwordEncoder = passwordEncoder;
         this.jwtEncoder = jwtEncoder;
         this.jwtProperties = jwtProperties;
+        this.adminAuditLogger = adminAuditLogger;
     }
 
     public AdminLoginResponse login(AdminLoginRequest request) {
         AdminUser user = adminUserRepository.findByUsernameIgnoreCase(request.username())
-                .filter(AdminUser::isActive)
-                .orElseThrow(this::invalidCredentials);
+                .orElse(null);
+        if (user == null) {
+            adminAuditLogger.logLoginFailure(request.username(), "user_not_found");
+            throw invalidCredentials();
+        }
+
+        if (!user.isActive()) {
+            adminAuditLogger.logLoginFailure(request.username(), "user_inactive");
+            throw invalidCredentials();
+        }
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            adminAuditLogger.logLoginFailure(request.username(), "password_mismatch");
             throw invalidCredentials();
         }
 
@@ -68,6 +80,7 @@ public class AdminAuthService {
         String accessToken = jwtEncoder.encode(
                 JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims)
         ).getTokenValue();
+        adminAuditLogger.logLoginSuccess(user);
 
         return new AdminLoginResponse(
                 "Bearer",

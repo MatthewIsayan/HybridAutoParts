@@ -130,6 +130,22 @@ class AdminPartImageControllerIT {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    void rejectsUnsupportedImageContentTypesWithStructuredError() throws Exception {
+        String token = loginAsAdmin();
+        long partId = createAdminPart(token);
+
+        MockMultipartFile invalidFile = new MockMultipartFile("files", "notes.txt", "text/plain", "not-an-image".getBytes());
+
+        mockMvc.perform(multipart("/api/admin/parts/{partId}/images", partId)
+                        .file(invalidFile)
+                        .header("Authorization", bearerToken(token)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("bad_request"))
+                .andExpect(jsonPath("$.message").value("Uploaded images must use a supported image content type."))
+                .andExpect(jsonPath("$.requestId").isString());
+    }
+
     private long createAdminPart(String token) throws Exception {
         MvcResult createResult = mockMvc.perform(post("/api/admin/parts")
                         .header("Authorization", bearerToken(token))

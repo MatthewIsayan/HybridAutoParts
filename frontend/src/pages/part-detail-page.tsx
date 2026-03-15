@@ -31,6 +31,15 @@ export function PartDetailPage() {
   const images = part?.images ?? []
   const primaryImage = images[selectedImageIndex] ?? images[0]
 
+  if (partQuery.isLoading) {
+    return (
+      <section className="space-y-4">
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">Part detail</p>
+        <div className="rounded-3xl border border-border bg-card px-6 py-10 text-muted-foreground">Loading part details...</div>
+      </section>
+    )
+  }
+
   if (partQuery.isError) {
     return (
       <section className="space-y-4">
@@ -134,9 +143,13 @@ export function PartDetailPage() {
           <div className="rounded-2xl border border-border bg-background p-5">
             <p className="text-sm font-medium text-primary">Contact to purchase or confirm fitment</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Call {company?.phone ?? 'the yard'} or email {company?.supportEmail ?? 'the support team'} and mention
+              Call {companyQuery.isError ? 'the yard' : company?.phone ?? 'the yard'} or email{' '}
+              {companyQuery.isError ? 'the support team' : company?.supportEmail ?? 'the support team'} and mention
               SKU {part?.sku ?? 'for this listing'}.
             </p>
+            {companyQuery.isError ? (
+              <p className="mt-3 text-sm text-muted-foreground">Company contact details are temporarily unavailable, but the part details still loaded.</p>
+            ) : null}
             <div className="mt-4 flex flex-wrap gap-3">
               <Button asChild>
                 <Link to="/contact">Contact the yard</Link>

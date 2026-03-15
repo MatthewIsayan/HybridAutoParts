@@ -15,13 +15,16 @@ public class AdminCompanyConfigService {
 
     private final CompanyConfigRepository companyConfigRepository;
     private final CompanyConfigMapper companyConfigMapper;
+    private final AdminAuditLogger adminAuditLogger;
 
     public AdminCompanyConfigService(
             CompanyConfigRepository companyConfigRepository,
-            CompanyConfigMapper companyConfigMapper
+            CompanyConfigMapper companyConfigMapper,
+            AdminAuditLogger adminAuditLogger
     ) {
         this.companyConfigRepository = companyConfigRepository;
         this.companyConfigMapper = companyConfigMapper;
+        this.adminAuditLogger = adminAuditLogger;
     }
 
     @Transactional(readOnly = true)
@@ -43,7 +46,9 @@ public class AdminCompanyConfigService {
         companyConfig.setHeroSubheadline(request.heroSubheadline().trim());
         companyConfig.setAboutText(request.aboutText().trim());
 
-        return companyConfigMapper.toDto(companyConfigRepository.save(companyConfig));
+        CompanyConfig savedConfig = companyConfigRepository.save(companyConfig);
+        adminAuditLogger.logCompanyConfigUpdated(savedConfig.getId());
+        return companyConfigMapper.toDto(savedConfig);
     }
 
     private CompanyConfig loadCompanyConfig() {

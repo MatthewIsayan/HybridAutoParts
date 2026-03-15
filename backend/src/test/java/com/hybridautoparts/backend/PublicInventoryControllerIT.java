@@ -92,4 +92,12 @@ class PublicInventoryControllerIT {
         mockMvc.perform(get("/api/public/parts/999"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void returnsStructuredBadRequestForInvalidPartIdFormat() throws Exception {
+        mockMvc.perform(get("/api/public/parts/not-a-number"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("bad_request"))
+                .andExpect(jsonPath("$.requestId").isString());
+    }
 }

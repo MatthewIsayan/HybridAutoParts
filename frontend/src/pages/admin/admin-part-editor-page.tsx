@@ -78,7 +78,11 @@ export function AdminPartEditorPage({ mode }: AdminPartEditorPageProps) {
         queryClient.invalidateQueries({ queryKey: ['public', 'part'] }),
         queryClient.invalidateQueries({ queryKey: adminQueryKeys.part(String(savedPart.id)) }),
       ])
-      navigate('/admin/parts')
+      navigate('/admin/parts', {
+        state: {
+          notice: mode === 'edit' ? 'Part changes saved.' : 'Part created successfully.',
+        },
+      })
     },
     onError: (error) => {
       if (error instanceof ApiClientError) {
@@ -115,6 +119,20 @@ export function AdminPartEditorPage({ mode }: AdminPartEditorPageProps) {
 
       {partQuery.isLoading ? (
         <div className="rounded-3xl border border-slate-800 bg-slate-900 px-6 py-10 text-slate-300">Loading part...</div>
+      ) : null}
+
+      {mode === 'edit' && partQuery.isError ? (
+        <div className="space-y-4 rounded-3xl border border-rose-500/20 bg-rose-500/10 px-6 py-8 text-rose-100">
+          <p>The part record could not be loaded. It may have been removed or the session may no longer be valid.</p>
+          <div className="flex flex-wrap gap-3">
+            <Button type="button" variant="adminOutline" onClick={() => partQuery.refetch()}>
+              Retry loading part
+            </Button>
+            <Button asChild variant="adminOutline">
+              <Link to="/admin/parts">Back to inventory</Link>
+            </Button>
+          </div>
+        </div>
       ) : null}
 
       {submitError ? (

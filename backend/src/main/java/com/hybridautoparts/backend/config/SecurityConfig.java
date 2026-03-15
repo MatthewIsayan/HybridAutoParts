@@ -1,12 +1,15 @@
 package com.hybridautoparts.backend.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hybridautoparts.backend.config.RequestCorrelation;
 import com.hybridautoparts.backend.dto.ApiErrorResponse;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -32,11 +35,14 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SecurityConfig.class);
+
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             ObjectMapper objectMapper,
-            JwtAuthenticationConverter jwtAuthenticationConverter
+            JwtAuthenticationConverter jwtAuthenticationConverter,
+            MediaProperties mediaProperties
     ) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -44,27 +50,58 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/admin/auth/login").permitAll()
-                        .requestMatchers("/api/public/**", "/api/health", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                        .requestMatchers(
+                                "/api/public/**",
+                                "/api/health",
+                                "/actuator/health",
+                                "/actuator/health/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                normalizeMediaPattern(mediaProperties)
+                        )
                         .permitAll()
                         .requestMatchers("/api/admin/**").hasAuthority("SCOPE_ADMIN")
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .anyRequest().permitAll())
+                        .anyRequest().denyAll())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, exception) -> {
+                            LOGGER.atWarn()
+                                    .addKeyValue("event", "security_authentication_required")
+                                    .addKeyValue("requestId", RequestCorrelation.getRequestId(request))
+                                    .addKeyValue("method", request.getMethod())
+                                    .addKeyValue("path", request.getRequestURI())
+                                    .log("Authentication is required for this resource");
                             response.setStatus(401);
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             objectMapper.writeValue(
                                     response.getOutputStream(),
-                                    new ApiErrorResponse("unauthorized", "Authentication is required for this resource.", Map.of())
+                                    new ApiErrorResponse(
+                                            "unauthorized",
+                                            "Authentication is required for this resource.",
+                                            Map.of(),
+                                            RequestCorrelation.getRequestId(request)
+                                    )
                             );
                         })
                         .accessDeniedHandler((request, response, exception) -> {
+                            LOGGER.atWarn()
+                                    .addKeyValue("event", "security_access_denied")
+                                    .addKeyValue("requestId", RequestCorrelation.getRequestId(request))
+                                    .addKeyValue("method", request.getMethod())
+                                    .addKeyValue("path", request.getRequestURI())
+                                    .log("Access denied for this resource");
                             response.setStatus(403);
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             objectMapper.writeValue(
                                     response.getOutputStream(),
-                                    new ApiErrorResponse("forbidden", "You do not have access to this resource.", Map.of())
+                                    new ApiErrorResponse(
+                                            "forbidden",
+                                            "You do not have access to this resource.",
+                                            Map.of(),
+                                            RequestCorrelation.getRequestId(request)
+                                    )
                             );
                         }));
 
@@ -103,5 +140,11 @@ public class SecurityConfig {
     private SecretKey jwtSecretKey(JwtProperties jwtProperties) {
         byte[] secret = jwtProperties.secret().getBytes(StandardCharsets.UTF_8);
         return new SecretKeySpec(secret, "HmacSHA256");
+    }
+
+    private String normalizeMediaPattern(MediaProperties mediaProperties) {
+        String prefix = mediaProperties.urlPrefix();
+        String normalizedPrefix = prefix.startsWith("/") ? prefix : "/" + prefix;
+        return normalizedPrefix + "/**";
     }
 }

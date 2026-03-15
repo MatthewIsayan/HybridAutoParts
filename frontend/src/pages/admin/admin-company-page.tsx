@@ -96,6 +96,15 @@ export function AdminCompanyPage() {
         <div className="rounded-3xl border border-slate-800 bg-slate-900 px-6 py-10 text-slate-300">Loading company settings...</div>
       ) : null}
 
+      {companyQuery.isError ? (
+        <div className="space-y-4 rounded-3xl border border-rose-500/20 bg-rose-500/10 px-6 py-8 text-rose-100">
+          <p>Company settings could not be loaded right now.</p>
+          <Button type="button" variant="adminOutline" onClick={() => companyQuery.refetch()}>
+            Retry loading settings
+          </Button>
+        </div>
+      ) : null}
+
       {companyQuery.data ? (
         <form
           className="space-y-6 rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl"

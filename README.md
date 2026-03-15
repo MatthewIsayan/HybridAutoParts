@@ -1,20 +1,29 @@
 # Hybrid Auto Parts
 
-Phase 0 foundation for the Hybrid Auto Parts phased functional spec.
+Hybrid Auto Parts is a phased MVP for public salvage inventory browsing plus protected admin inventory, media, and company-content management.
 
-## Structure
+## Current Stack
 
-- `backend/` Spring Boot API with Flyway, PostgreSQL, MapStruct, and OpenAPI
-- `frontend/` React + TypeScript + Vite app with Tailwind, React Router, TanStack Query, and shadcn-ready utilities
-- `shared/api-types/` generated TypeScript API contracts
-- `docker-compose.yml` local stack for `postgres`, `backend`, and `frontend`
+- `backend/`: Spring Boot API with Flyway, PostgreSQL, Spring Security JWT auth, MapStruct, and OpenAPI
+- `frontend/`: React + TypeScript + Vite app with React Router, TanStack Query, Tailwind, and admin/public route shells
+- `shared/api-types/`: generated TypeScript contracts from the backend OpenAPI document
+- `docker-compose.yml`: local stack for `postgres`, `backend`, and `frontend`
 
-## Local Stack
+## Quick Start
 
 1. Copy `.env.example` to `.env` if you want to override defaults.
 2. Run `docker compose up --build`.
-3. Open `http://localhost:3000` for the frontend.
+3. Open `http://localhost:3000` for the app.
 4. Open `http://localhost:8080/swagger-ui.html` for backend API docs.
+5. Verify `http://localhost:8080/api/health` returns `ok`.
+
+## Local Verification
+
+- Public app: `http://localhost:3000`
+- Backend API: `http://localhost:8080`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- Actuator health: `http://localhost:8080/actuator/health`
+- Default local admin login: `admin / password`
 
 ## Generated API Types
 
@@ -25,9 +34,12 @@ npm install
 npm run generate:api-types
 ```
 
-That command refreshes `shared/api-types/generated.ts` from the backend OpenAPI document.
+That command refreshes `shared/api-types/generated.ts` from the backend OpenAPI document. The generated file is committed and should stay in sync with backend contract changes.
 
-## Phase 0 Notes
+## Documentation
 
-- Seed data includes one company config record, three sample parts, placeholder image URLs, and a local-only default admin user.
-- The public home route and admin route are placeholders so Phase 1 and Phase 2 can build on stable routing and shared contracts.
+- [docs/local-development.md](docs/local-development.md)
+- [docs/environment-variables.md](docs/environment-variables.md)
+- [docs/generated-api-types.md](docs/generated-api-types.md)
+- [docs/docker-onboarding.md](docs/docker-onboarding.md)
+- [docs/release-smoke-checklist.md](docs/release-smoke-checklist.md)

@@ -7,6 +7,7 @@ import java.util.Map;
 public record ApiErrorResponse(
         String error,
         String message,
-        Map<String, String> fieldErrors
+        Map<String, String> fieldErrors,
+        String requestId
 ) {
 }

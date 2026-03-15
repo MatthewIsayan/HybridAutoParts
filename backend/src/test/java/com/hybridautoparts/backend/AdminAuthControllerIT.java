@@ -3,6 +3,7 @@ package com.hybridautoparts.backend;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,6 +33,7 @@ class AdminAuthControllerIT {
                                 }
                                 """))
                 .andExpect(status().isOk())
+                .andExpect(header().exists("X-Request-Id"))
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.accessToken").isString())
                 .andExpect(jsonPath("$.adminUser.username").value("admin"))
@@ -49,13 +51,17 @@ class AdminAuthControllerIT {
                                 }
                                 """))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("unauthorized"));
+                .andExpect(header().exists("X-Request-Id"))
+                .andExpect(jsonPath("$.error").value("unauthorized"))
+                .andExpect(jsonPath("$.requestId").isString());
     }
 
     @Test
     void blocksUnauthenticatedAdminRequests() throws Exception {
         mockMvc.perform(get("/api/admin/parts"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("unauthorized"));
+                .andExpect(header().exists("X-Request-Id"))
+                .andExpect(jsonPath("$.error").value("unauthorized"))
+                .andExpect(jsonPath("$.requestId").isString());
     }
 }

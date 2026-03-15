@@ -186,6 +186,29 @@ class AdminInventoryControllerIT {
                 .andExpect(jsonPath("$.content[0].vehicleModel").value(org.hamcrest.Matchers.containsStringIgnoringCase("Camry")));
     }
 
+    @Test
+    void rejectsOverlongPartFieldsWithStructuredValidationErrors() throws Exception {
+        String token = loginAsAdmin();
+
+        mockMvc.perform(post("/api/admin/parts")
+                        .header("Authorization", bearerToken(token))
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "sku": "12345678901234567890123456789012345678901234567890123456789012345",
+                                  "title": "Phase 4 Validation Test Part",
+                                  "condition": "Tested",
+                                  "status": "AVAILABLE",
+                                  "locationCode": "ROW-01",
+                                  "price": 10.00
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("validation_error"))
+                .andExpect(jsonPath("$.fieldErrors.sku").value("SKU must be 64 characters or fewer."))
+                .andExpect(jsonPath("$.requestId").isString());
+    }
+
     private String loginAsAdmin() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/admin/auth/login")
                         .contentType(APPLICATION_JSON)

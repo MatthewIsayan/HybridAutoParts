@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ChangeEvent } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { adminQueryKeys, deleteAdminPartImage, fetchAdminPartImages, reorderAdminPartImages, uploadAdminPartImages } from '@/lib/admin-api'
 import { useAdminAuth } from '@/lib/auth'
@@ -13,6 +14,7 @@ interface PartImageManagerProps {
 export function PartImageManager({ partId }: PartImageManagerProps) {
   const queryClient = useQueryClient()
   const { adminToken } = useAdminAuth()
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
   const imagesQuery = useQuery({
     queryKey: adminQueryKeys.partImages(partId ?? ''),
@@ -23,22 +25,28 @@ export function PartImageManager({ partId }: PartImageManagerProps) {
   const uploadMutation = useMutation({
     mutationFn: (files: File[]) => uploadAdminPartImages(adminToken ?? '', partId ?? '', files),
     onSuccess: async () => {
+      setStatusMessage('Images uploaded.')
       await invalidateImageQueries(queryClient, partId ?? '')
     },
+    onError: () => setStatusMessage(null),
   })
 
   const reorderMutation = useMutation({
     mutationFn: (imageIds: number[]) => reorderAdminPartImages(adminToken ?? '', partId ?? '', { imageIds }),
     onSuccess: async () => {
+      setStatusMessage('Image order updated.')
       await invalidateImageQueries(queryClient, partId ?? '')
     },
+    onError: () => setStatusMessage(null),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (imageId: number) => deleteAdminPartImage(adminToken ?? '', partId ?? '', String(imageId)),
     onSuccess: async () => {
+      setStatusMessage('Image deleted.')
       await invalidateImageQueries(queryClient, partId ?? '')
     },
+    onError: () => setStatusMessage(null),
   })
 
   if (!partId) {
@@ -107,9 +115,22 @@ export function PartImageManager({ partId }: PartImageManagerProps) {
         <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{activeError}</div>
       ) : null}
 
+      {statusMessage ? (
+        <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">{statusMessage}</div>
+      ) : null}
+
       {imagesQuery.isLoading ? <p className="text-sm text-slate-400">Loading images...</p> : null}
 
-      {images.length === 0 && !imagesQuery.isLoading ? (
+      {imagesQuery.isError ? (
+        <div className="space-y-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-4 text-sm text-rose-100">
+          <p>Part images could not be loaded right now.</p>
+          <Button type="button" variant="adminOutline" onClick={() => imagesQuery.refetch()}>
+            Retry image panel
+          </Button>
+        </div>
+      ) : null}
+
+      {images.length === 0 && !imagesQuery.isLoading && !imagesQuery.isError ? (
         <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/70 px-6 py-8 text-center text-sm text-slate-400">
           No uploaded images yet. The public site will keep using placeholder handling until images are added.
         </div>

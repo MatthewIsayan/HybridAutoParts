@@ -28,19 +28,22 @@ public class AdminPartImageService {
     private final PartMapper partMapper;
     private final PartImageMapper partImageMapper;
     private final MediaStorageService mediaStorageService;
+    private final AdminAuditLogger adminAuditLogger;
 
     public AdminPartImageService(
             PartRepository partRepository,
             PartImageRepository partImageRepository,
             PartMapper partMapper,
             PartImageMapper partImageMapper,
-            MediaStorageService mediaStorageService
+            MediaStorageService mediaStorageService,
+            AdminAuditLogger adminAuditLogger
     ) {
         this.partRepository = partRepository;
         this.partImageRepository = partImageRepository;
         this.partMapper = partMapper;
         this.partImageMapper = partImageMapper;
         this.mediaStorageService = mediaStorageService;
+        this.adminAuditLogger = adminAuditLogger;
     }
 
     @Transactional(readOnly = true)
@@ -81,6 +84,7 @@ public class AdminPartImageService {
         }
 
         partRepository.save(part);
+        adminAuditLogger.logImagesUploaded(partId, files.size());
         return reloadPartDto(partId);
     }
 
@@ -111,6 +115,7 @@ public class AdminPartImageService {
         }
 
         partRepository.save(part);
+        adminAuditLogger.logImagesReordered(partId, imageIds.size());
         return reloadPartDto(partId);
     }
 
@@ -125,6 +130,7 @@ public class AdminPartImageService {
         resequenceImages(part.getImages());
         partRepository.save(part);
         mediaStorageService.deleteByPublicUrl(imageUrl);
+        adminAuditLogger.logImageDeleted(partId, imageId);
         return reloadPartDto(partId);
     }
 
